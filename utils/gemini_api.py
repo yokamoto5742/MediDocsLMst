@@ -1,7 +1,5 @@
 import os
 import google.generativeai as genai
-from utils.text_processor import format_discharge_summary, extract_key_elements
-
 
 def initialize_gemini():
     """
@@ -20,157 +18,64 @@ def initialize_gemini():
     return True
 
 
-def create_discharge_summary_prompt(medical_text, format_type="標準形式"):
+def create_discharge_summary_prompt(medical_text):
     """
     退院時サマリ生成用のプロンプトを作成する関数
 
     Args:
-        medical_text (str): 前処理済みの医療テキスト
-        format_type (str): 生成するサマリのフォーマットタイプ
+        medical_text (str): 医療テキスト
 
     Returns:
         str: 構築されたプロンプト
     """
-    # カルテから重要要素を抽出
-    elements = extract_key_elements(medical_text)
+    # 添付されたプロンプトファイルの内容を使用
+    prompt = f"""あなたは経験豊富な医療文書作成の専門家です。
+当院のフォーマットに従って退院時サマリを作成してください
+このカルテ記載を使用して、包括的で簡潔な退院時サマリを作成してください。
+医療専門用語を適切に使用し、重要な情報を漏らさず、読みやすく整理された文書を作成してください。
+医療従事者が読みやすく、必要な情報を迅速に把握できるような文書を作成してください。
 
-    # フォーマットに応じたテンプレート選択
-    format_instructions = {
-        "標準形式": """
-# 退院時サマリ
+退院時サマリの構造:
+・入院期間
 
-## 患者基本情報
-- 患者ID: [患者ID]
-- 入院日: [入院日]
-- 退院日: [退院日]
+・現病歴(入院日までの情報のみを記載)
 
-## 診断名
-[診断名]
+・入院時検査
 
-## 入院理由と現病歴
-[入院に至った経緯と現病歴]
+・入院中の治療経過
+入院中に投与された重要な薬剤
+手術情報(手術日と術式のみ)
+処置情報(侵襲のある処置日と処置名のみ)
 
-## 入院後経過
-[入院中の治療経過]
+・退院申し送り
+退院時方針
+退院時処方
 
-## 退院時状態
-[退院時の患者の状態]
 
-## 退院後治療計画
-[退院後の治療計画と指示事項]
-
-## 処方薬
-[退院時処方薬]
-""",
-        "詳細形式": """
-# 退院時サマリ - 詳細版
-
-## 患者基本情報
-- 患者ID: [患者ID]
-- 入院日: [入院日]
-- 退院日: [退院日]
-
-## 診断名
-### 主診断
-[主診断]
-
-### 副診断
-[副診断]
-
-## 入院理由と現病歴
-### 主訴
-[主訴]
-
-### 現病歴
-[現病歴の詳細]
-
-### 既往歴
-[既往歴]
-
-## 入院後経過
-### 検査所見
-[重要な検査結果]
-
-### 治療内容
-[実施された治療の詳細]
-
-### 臨床経過
-[入院中の経過詳細]
-
-## 退院時状態
-### バイタルサイン
-[退院時のバイタルサイン]
-
-### 身体所見
-[退院時の身体所見]
-
-## 退院後治療計画
-### 外来フォロー
-[外来フォロー計画]
-
-### 生活指導
-[生活指導の内容]
-
-## 処方薬
-[退院時処方薬と用法用量]
-""",
-        "簡易形式": """
-# 退院時サマリ（簡易版）
-
-## 基本情報
-[患者ID、入院期間]
-
-## 診断
-[診断名]
-
-## 経過概要
-[入院から退院までの簡潔な経過]
-
-## 退院時処方と指示
-[処方薬と退院指示]
-"""
-    }
-
-    # プロンプト構築
-    prompt = f"""
-あなたは経験豊富な医師です。以下のカルテ情報から、正確で簡潔な退院時サマリを作成してください。
-
-【フォーマット】
-{format_instructions.get(format_type, format_instructions["標準形式"])}
-
-【患者情報】
-患者ID: {elements["patient_id"] if elements["patient_id"] else "不明"}
-入院日: {elements["admission_date"] if elements["admission_date"] else "不明"}
-退院日: {elements["discharge_date"] if elements["discharge_date"] else "不明"}
-診断名: {", ".join(elements["diagnosis"]) if elements["diagnosis"] else "カルテから抽出"}
+・禁忌/アレルギー
 
 【カルテ情報】
 {medical_text}
-
-退院時サマリを上記のフォーマットに従って作成してください。
-カルテに情報がない場合は、その項目は「記載なし」または「情報なし」と記載してください。
-医学的に適切で、簡潔かつ明確な表現を使用してください。
 """
     return prompt
 
 
-def generate_discharge_summary(medical_text, format_type="標準形式"):
+def generate_discharge_summary(medical_text):
     """
     Gemini APIを使用して退院時サマリを生成する関数
 
     Args:
-        medical_text (str): 前処理済みの医療テキスト
-        format_type (str): 生成するサマリのフォーマットタイプ
+        medical_text (str): 医療テキスト
 
     Returns:
         str: 生成された退院時サマリ
     """
     try:
         initialize_gemini()
-        model = genai.GenerativeModel('gemini-2.0-pro-exp-02-05') # 安定版は gemini-2.0-flash
+        model = genai.GenerativeModel('gemini-2.0-pro-exp-02-05')  # 安定版は gemini-2.0-flash
 
         # プロンプトの作成
-        prompt = create_discharge_summary_prompt(medical_text, format_type)
+        prompt = create_discharge_summary_prompt(medical_text)
 
         # 生成実行
         response = model.generate_content(prompt)
@@ -181,10 +86,7 @@ def generate_discharge_summary(medical_text, format_type="標準形式"):
         else:
             summary_text = str(response)
 
-        # 生成されたテキストのフォーマット調整
-        formatted_summary = format_discharge_summary(summary_text, format_type)
-
-        return formatted_summary
+        return summary_text
 
     except Exception as e:
         # エラーをより詳細に表示

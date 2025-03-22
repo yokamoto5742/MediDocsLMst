@@ -1,7 +1,6 @@
 import streamlit as st
 import os
 from utils.gemini_api import generate_discharge_summary
-from utils.text_processor import preprocess_text
 
 # ページ設定
 st.set_page_config(
@@ -49,14 +48,6 @@ def main():
         placeholder="ここに電子カルテのテキストを貼り付けてください..."
     )
 
-    # オプション設定
-    col1, col2 = st.columns(2)
-    with col1:
-        summary_format = st.selectbox(
-            "退院時サマリのフォーマット",
-            ["標準形式", "詳細形式", "簡易形式"]
-        )
-
     # 実行ボタン
     if st.button("退院時サマリを作成", type="primary"):
         if not api_key:
@@ -69,11 +60,8 @@ def main():
 
         try:
             with st.spinner("退院時サマリを作成中..."):
-                # テキストの前処理
-                processed_text = preprocess_text(input_text)
-
-                # Gemini APIを使用してサマリ生成
-                discharge_summary = generate_discharge_summary(processed_text, summary_format)
+                # Gemini APIを使用してサマリ生成 (前処理・後処理なし)
+                discharge_summary = generate_discharge_summary(input_text)
 
                 # セッション状態に保存
                 st.session_state.discharge_summary = discharge_summary
