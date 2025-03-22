@@ -14,11 +14,7 @@ st.set_page_config(
 if "discharge_summary" not in st.session_state:
     st.session_state.discharge_summary = ""
 
-# タイトルと説明
 st.title("退院時サマリ作成アプリ")
-st.markdown("""
-電子カルテのテキストデータから退院時サマリを作成します。
-""")
 
 # サイドバー - APIキー設定
 with st.sidebar:
@@ -40,9 +36,9 @@ def main():
 
     # テキスト入力
     input_text = st.text_area(
-        "電子カルテのテキストを入力してください",
+        "電子カルテのテキストデータから退院時サマリを作成します",
         height=200,
-        placeholder="ここに電子カルテのテキストを貼り付けてください..."
+        placeholder="ここにテキストを貼り付けてください..."
     )
 
     # 実行ボタン
