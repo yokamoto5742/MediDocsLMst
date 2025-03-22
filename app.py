@@ -16,8 +16,7 @@ if "discharge_summary" not in st.session_state:
 # タイトルと説明
 st.title("退院時サマリ作成アプリ")
 st.markdown("""
-このアプリケーションは電子カルテのテキストから退院時サマリを自動生成します。
-入力および出力テキストはサーバーに保存されません。
+電子カルテのテキストデータから退院時サマリを作成します。
 """)
 
 # サイドバー - APIキー設定
@@ -30,21 +29,20 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("注意事項")
     st.markdown("""
-    - このアプリはGemini APIを使用しています
     - 入力および出力テキストはサーバーに保存されません
-    - 医療情報の取り扱いには十分ご注意ください
+    - 個人情報の取り扱いには十分ご注意ください
     """)
 
 
 # メイン機能
 def main():
     # 入力セクション
-    st.header("カルテ情報入力")
+    st.header("電子カルテテキスト入力")
 
     # テキスト入力
     input_text = st.text_area(
         "電子カルテのテキストを入力してください",
-        height=300,
+        height=200,
         placeholder="ここに電子カルテのテキストを貼り付けてください..."
     )
 
@@ -60,18 +58,15 @@ def main():
 
         try:
             with st.spinner("退院時サマリを作成中..."):
-                # Gemini APIを使用してサマリ生成 (前処理・後処理なし)
                 discharge_summary = generate_discharge_summary(input_text)
 
-                # セッション状態に保存
                 st.session_state.discharge_summary = discharge_summary
 
         except Exception as e:
             st.error(f"エラーが発生しました: {str(e)}")
 
-    # 結果表示セクション
     if st.session_state.discharge_summary:
-        st.header("作成された退院時サマリ")
+        st.header("退院時サマリ")
         st.text_area(
             "生成結果",
             value=st.session_state.discharge_summary,
