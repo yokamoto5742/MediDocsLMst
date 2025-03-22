@@ -166,11 +166,8 @@ def generate_discharge_summary(medical_text, format_type="標準形式"):
         str: 生成された退院時サマリ
     """
     try:
-        # Gemini APIの初期化
         initialize_gemini()
-
-        # Gemini 2.0 Flash モデルの設定
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-2.0-pro-exp-02-05') # 安定版は gemini-2.0-flash
 
         # プロンプトの作成
         prompt = create_discharge_summary_prompt(medical_text, format_type)
