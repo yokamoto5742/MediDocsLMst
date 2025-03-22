@@ -16,12 +16,17 @@ if "discharge_summary" not in st.session_state:
 
 st.title("退院時サマリ作成アプリ")
 
-# サイドバー - APIキー設定
+# サイドバー - 設定情報表示
 with st.sidebar:
     st.header("設定")
-    api_key = st.text_input("Gemini API Key", type="password")
-    if api_key:
-        os.environ["GOOGLE_API_KEY"] = api_key
+    st.info("Gemini APIキーは環境変数から読み込まれます。以下のいずれかを設定してください：")
+    st.code("""
+# 方法1: 直接APIキーを設定
+GOOGLE_API_KEY=あなたのAPIキー
+
+# 方法2: JSON形式で設定
+GEMINI_CREDENTIALS={"api_key": "あなたのAPIキー"}
+    """)
 
     st.markdown("---")
     st.subheader("注意事項")
@@ -43,8 +48,9 @@ def main():
 
     # 実行ボタン
     if st.button("退院時サマリを作成", type="primary"):
-        if not api_key:
-            st.error("⚠️ Gemini API Keyを入力してください")
+        # APIキーが設定されているか環境変数を確認
+        if not os.environ.get("GOOGLE_API_KEY") and not os.environ.get("GEMINI_CREDENTIALS"):
+            st.error("⚠️ Gemini APIの認証情報が設定されていません。環境変数を確認してください。")
             return
 
         if not input_text or len(input_text.strip()) < 10:
@@ -55,7 +61,6 @@ def main():
             with st.spinner("退院時サマリを作成中..."):
                 discharge_summary = generate_discharge_summary(input_text)
 
-                # アスタリスクを削除
                 discharge_summary = format_discharge_summary(discharge_summary)
 
                 st.session_state.discharge_summary = discharge_summary
@@ -71,7 +76,6 @@ def main():
             height=400
         )
 
-        # コピー操作の説明
         st.info("💡 テキストを選択して Ctrl+C でコピーできます")
 
 

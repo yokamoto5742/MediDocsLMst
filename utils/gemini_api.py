@@ -1,21 +1,42 @@
 import os
+import json
 import google.generativeai as genai
+
 
 def initialize_gemini():
     """
     Gemini APIのクライアントを初期化する関数
+    環境変数からJSON形式の認証情報を読み込む
 
     Returns:
         bool: 初期化が成功したかどうか
     """
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    try:
+        # 環境変数からJSON形式の認証情報を読み込む
+        if 'GEMINI_CREDENTIALS' in os.environ:
+            # JSON文字列から認証情報を読み込む
+            credentials_json = json.loads(os.environ['GEMINI_CREDENTIALS'])
 
-    if not api_key:
-        raise ValueError("Gemini API Keyが設定されていません。サイドバーでAPIキーを入力してください。")
+            # JSONオブジェクトからAPIキーを取得
+            api_key = credentials_json.get('api_key')
 
-    # Gemini APIの設定
-    genai.configure(api_key=api_key)
-    return True
+            if not api_key:
+                raise ValueError("認証情報にapi_keyが含まれていません。")
+        elif 'GOOGLE_API_KEY' in os.environ:
+            # 従来の方法（環境変数から直接APIキーを取得）もサポート
+            api_key = os.environ.get('GOOGLE_API_KEY')
+        else:
+            raise ValueError(
+                "Gemini認証情報が設定されていません。環境変数GEMINI_CREDENTIALSまたはGOOGLE_API_KEYを設定してください。")
+
+        # Gemini APIの設定
+        genai.configure(api_key=api_key)
+        return True
+
+    except json.JSONDecodeError:
+        raise ValueError("GEMINI_CREDENTIALSの形式が正しくありません。有効なJSON形式である必要があります。")
+    except Exception as e:
+        raise Exception(f"Gemini API初期化エラー: {str(e)}")
 
 
 def create_discharge_summary_prompt(medical_text):
