@@ -53,13 +53,94 @@ def format_discharge_summary(summary_text, format_type="標準形式"):
     # 基本的なクリーニング
     formatted_text = summary_text.strip()
 
-    # フォーマットタイプに基づく追加処理
+    # 当院の退院時サマリ構造に従ったフォーマット
+    hospital_format = """# 退院時サマリ
+
+## 入院期間
+[入院期間]
+
+## 現病歴
+[入院日までの情報のみを記載]
+
+## 入院時検査
+[入院時の検査結果]
+
+## 入院中の治療経過
+### 投与薬剤
+[入院中に投与された重要な薬剤]
+
+### 手術情報
+[手術日と術式のみ]
+
+### 処置情報
+[侵襲のある処置日と処置名のみ]
+
+## 退院申し送り
+### 退院時方針
+[退院時方針]
+
+### 退院時処方
+[退院時処方]
+
+## 禁忌/アレルギー
+[禁忌/アレルギー情報]
+"""
+
+    # フォーマットタイプに基づく処理
     if format_type == "標準形式":
-        # そのまま返す
-        pass
+        # 当院フォーマットを標準として使用
+        sections = {
+            "入院期間": re.search(r'入院(?:日|期間)[：:]\s*(.*?)(?:\n|$)', formatted_text),
+            "現病歴": re.search(r'現病歴[：:]\s*(.*?)(?:\n\n|$)', formatted_text, re.DOTALL),
+            "入院時検査": re.search(r'検査[：:]\s*(.*?)(?:\n\n|$)', formatted_text, re.DOTALL),
+            "投与薬剤": re.search(r'薬剤[：:]\s*(.*?)(?:\n\n|$)', formatted_text, re.DOTALL),
+            "手術情報": re.search(r'手術[：:]\s*(.*?)(?:\n\n|$)', formatted_text, re.DOTALL),
+            "処置情報": re.search(r'処置[：:]\s*(.*?)(?:\n\n|$)', formatted_text, re.DOTALL),
+            "退院時方針": re.search(r'方針[：:]\s*(.*?)(?:\n\n|$)', formatted_text, re.DOTALL),
+            "退院時処方": re.search(r'退院[時後]処方[：:]\s*(.*?)(?:\n\n|$)', formatted_text, re.DOTALL),
+            "禁忌/アレルギー": re.search(r'(?:禁忌|アレルギー)[：:]\s*(.*?)(?:\n\n|$)', formatted_text, re.DOTALL)
+        }
+
+        result = "# 退院時サマリ\n\n"
+
+        # 各セクションの内容を抽出して新しいフォーマットに適用
+        result += "## 入院期間\n"
+        result += sections["入院期間"].group(1) if sections["入院期間"] else "情報なし\n\n"
+
+        result += "## 現病歴\n"
+        result += sections["現病歴"].group(1) if sections["現病歴"] else "情報なし\n\n"
+
+        result += "## 入院時検査\n"
+        result += sections["入院時検査"].group(1) if sections["入院時検査"] else "情報なし\n\n"
+
+        result += "## 入院中の治療経過\n"
+
+        result += "### 投与薬剤\n"
+        result += sections["投与薬剤"].group(1) if sections["投与薬剤"] else "情報なし\n\n"
+
+        result += "### 手術情報\n"
+        result += sections["手術情報"].group(1) if sections["手術情報"] else "情報なし\n\n"
+
+        result += "### 処置情報\n"
+        result += sections["処置情報"].group(1) if sections["処置情報"] else "情報なし\n\n"
+
+        result += "## 退院申し送り\n"
+
+        result += "### 退院時方針\n"
+        result += sections["退院時方針"].group(1) if sections["退院時方針"] else "情報なし\n\n"
+
+        result += "### 退院時処方\n"
+        result += sections["退院時処方"].group(1) if sections["退院時処方"] else "情報なし\n\n"
+
+        result += "## 禁忌/アレルギー\n"
+        result += sections["禁忌/アレルギー"].group(1) if sections["禁忌/アレルギー"] else "情報なし"
+
+        return result
+
     elif format_type == "詳細形式":
         # 見出しの強調
         formatted_text = re.sub(r'^(#+\s*.*?)$', r'\1\n', formatted_text, flags=re.MULTILINE)
+
     elif format_type == "簡易形式":
         # 箇条書きの整理
         formatted_text = re.sub(r'\n\s*[-•]\s+', '\n• ', formatted_text)
