@@ -16,19 +16,7 @@ if "discharge_summary" not in st.session_state:
 
 st.title("退院時サマリ作成アプリ")
 
-# サイドバー - 設定情報表示
 with st.sidebar:
-    st.header("設定")
-    st.info("Gemini APIキーは環境変数から読み込まれます。以下のいずれかを設定してください：")
-    st.code("""
-# 方法1: 直接APIキーを設定
-GOOGLE_API_KEY=あなたのAPIキー
-
-# 方法2: JSON形式で設定
-GEMINI_CREDENTIALS={"api_key": "あなたのAPIキー"}
-    """)
-
-    st.markdown("---")
     st.subheader("注意事項")
     st.markdown("""
     - 入力および出力テキストはサーバーに保存されません
@@ -47,9 +35,9 @@ def main():
     )
 
     # 実行ボタン
-    if st.button("退院時サマリを作成", type="primary"):
+    if st.button("退院時サマリ作成", type="primary"):
         # APIキーが設定されているか環境変数を確認
-        if not os.environ.get("GOOGLE_API_KEY") and not os.environ.get("GEMINI_CREDENTIALS"):
+        if not os.environ.get("GEMINI_CREDENTIALS"):
             st.error("⚠️ Gemini APIの認証情報が設定されていません。環境変数を確認してください。")
             return
 
