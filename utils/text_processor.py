@@ -11,15 +11,17 @@ def preprocess_text(text):
     return text
 
 
-def format_discharge_summary(summary_text, format_type=None):
+def format_discharge_summary(summary_text):
     """
-    後処理を行わずにそのまま返す関数
+    サマリテキストの後処理を行う関数
 
     Args:
         summary_text (str): サマリテキスト
-        format_type (str): 不使用
 
     Returns:
-        str: 同じテキスト
+        str: 処理されたテキスト
     """
-    return summary_text
+    # 半角および全角のアスタリスク（＊印）、シャープ(#)、スペースを削除
+    processed_text = summary_text.replace('*', '').replace('＊', '').replace('#', '').replace(' ', '')
+
+    return processed_text

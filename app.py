@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 from utils.gemini_api import generate_discharge_summary
+from utils.text_processor import format_discharge_summary
 
 # ページ設定
 st.set_page_config(
@@ -59,6 +60,9 @@ def main():
         try:
             with st.spinner("退院時サマリを作成中..."):
                 discharge_summary = generate_discharge_summary(input_text)
+
+                # アスタリスクを削除
+                discharge_summary = format_discharge_summary(discharge_summary)
 
                 st.session_state.discharge_summary = discharge_summary
 
