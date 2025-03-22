@@ -37,8 +37,6 @@ with st.sidebar:
 
 # メイン機能
 def main():
-    # 入力セクション
-    st.header("電子カルテテキスト入力")
 
     # テキスト入力
     input_text = st.text_area(
