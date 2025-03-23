@@ -56,6 +56,30 @@ def register_user(username, password, is_admin=False):
     return True, "ユーザー登録が完了しました"
 
 
+def change_password(username, current_password, new_password):
+    """パスワード変更"""
+    users_collection = get_users_collection()
+
+    # ユーザー名でユーザーを検索
+    user = users_collection.find_one({"username": username})
+
+    if not user:
+        return False, "ユーザーが見つかりません"
+
+    # 現在のパスワードを検証
+    if not verify_password(current_password, user["password"]):
+        return False, "現在のパスワードが正しくありません"
+
+    # 新しいパスワードをハッシュ化して更新
+    hashed_new_password = hash_password(new_password)
+    users_collection.update_one(
+        {"username": username},
+        {"$set": {"password": hashed_new_password}}
+    )
+
+    return True, "パスワードが正常に変更されました"
+
+
 def authenticate_user(username, password):
     """ユーザー認証"""
     users_collection = get_users_collection()
@@ -178,3 +202,35 @@ def is_admin():
     if user:
         return user.get("is_admin", False)
     return False
+
+
+def password_change_ui():
+    """パスワード変更UI"""
+    st.subheader("パスワード変更")
+
+    user = get_current_user()
+    if not user:
+        st.error("ログインが必要です")
+        return
+
+    current_password = st.text_input("現在のパスワード", type="password", key="current_password")
+    new_password = st.text_input("新しいパスワード", type="password", key="new_password")
+    confirm_new_password = st.text_input("新しいパスワード（確認）", type="password", key="confirm_new_password")
+
+    if st.button("パスワードを変更", key="change_password_button"):
+        if not current_password or not new_password or not confirm_new_password:
+            st.error("すべての項目を入力してください")
+            return
+
+        if new_password != confirm_new_password:
+            st.error("新しいパスワードが一致しません")
+            return
+
+        try:
+            success, message = change_password(user["username"], current_password, new_password)
+            if success:
+                st.success(message)
+            else:
+                st.error(message)
+        except Exception as e:
+            st.error(f"パスワード変更エラー: {str(e)}")
