@@ -3,7 +3,6 @@ import os
 from utils.gemini_api import generate_discharge_summary
 from utils.text_processor import format_discharge_summary, parse_discharge_summary
 
-# ページ設定
 st.set_page_config(
     page_title="退院時サマリ作成アプリ",
     page_icon="🏥",

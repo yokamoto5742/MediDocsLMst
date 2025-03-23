@@ -2,6 +2,8 @@ import os
 import json
 import google.generativeai as genai
 
+from utils.config import get_config
+
 
 def initialize_gemini():
     try:
@@ -19,60 +21,20 @@ def initialize_gemini():
 
 
 def create_discharge_summary_prompt(medical_text):
-    """
-    退院時サマリ生成用のプロンプトを作成する関数
+    config = get_config()
+    prompt_template = config['PROMPTS']['discharge_summary']
+    prompt = f"{prompt_template}\n\n【カルテ情報】\n{medical_text}"
 
-    Args:
-        medical_text (str): 医療テキスト
-
-    Returns:
-        str: 構築されたプロンプト
-    """
-    # 添付されたプロンプトファイルの内容を使用
-    prompt = f"""あなたは経験豊富な医療文書作成の専門家です。
-当院のフォーマットに従って退院時サマリを作成してください
-このカルテ記載を使用して、包括的で簡潔な退院時サマリを作成してください。
-医療専門用語を適切に使用し、重要な情報を漏らさず、読みやすく整理された文書を作成してください。
-医療従事者が読みやすく、必要な情報を迅速に把握できるような文書を作成してください。
-
-退院時サマリの構造:
-・入院期間
-
-・現病歴(入院日までの情報のみを記載)
-
-・入院時検査
-
-・入院中の治療経過
-入院中に投与された重要な薬剤
-手術情報(手術日と術式のみ)
-処置情報(侵襲のある処置日と処置名のみ)
-
-・退院申し送り
-退院時方針
-退院時処方
-
-
-・禁忌/アレルギー
-
-【カルテ情報】
-{medical_text}
-"""
     return prompt
 
 
 def generate_discharge_summary(medical_text):
-    """
-    Gemini APIを使用して退院時サマリを生成する関数
-
-    Args:
-        medical_text (str): 医療テキスト
-
-    Returns:
-        str: 生成された退院時サマリ
-    """
     try:
         initialize_gemini()
-        model = genai.GenerativeModel('gemini-2.0-pro-exp-02-05')  # 安定版は gemini-2.0-flash
+        config = get_config()
+        model_name = config['GEMINI']['model']
+
+        model = genai.GenerativeModel(model_name)
 
         # プロンプトの作成
         prompt = create_discharge_summary_prompt(medical_text)
