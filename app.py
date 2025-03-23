@@ -2,6 +2,8 @@ import streamlit as st
 import os
 from utils.gemini_api import generate_discharge_summary
 from utils.text_processor import format_discharge_summary, parse_discharge_summary
+from utils.auth import login_ui, require_login, logout, get_current_user
+from utils.config import get_config
 
 st.set_page_config(
     page_title="退院時サマリ作成アプリ",
@@ -15,10 +17,22 @@ if "discharge_summary" not in st.session_state:
 if "parsed_summary" not in st.session_state:
     st.session_state.parsed_summary = {}
 
-st.title("退院時サマリ作成アプリ")
+# 設定の読み込み
+config = get_config()
+require_login_setting = config.getboolean('AUTH', 'require_login', fallback=True)
 
-# メイン機能
-def main():
+
+def main_app():
+    st.title("退院時サマリ作成アプリ")
+
+    # 現在のユーザー情報を表示
+    user = get_current_user()
+    if user:
+        st.sidebar.success(f"ログイン中: {user['username']}")
+        if st.sidebar.button("ログアウト"):
+            logout()
+            st.rerun()
+
     # テキスト入力
     input_text = st.text_area(
         "入力および出力テキストは保存されません",
@@ -81,6 +95,14 @@ def main():
                     )
 
         st.info("💡 テキストを選択して Ctrl+C でコピーできます")
+
+
+def main():
+    if require_login_setting:
+        if require_login():
+            main_app()
+    else:
+        main_app()
 
 
 if __name__ == "__main__":
