@@ -18,19 +18,11 @@ if "parsed_summary" not in st.session_state:
 
 st.title("退院時サマリ作成アプリ")
 
-with st.sidebar:
-    st.subheader("注意事項")
-    st.markdown("""
-    - 入力および出力テキストはサーバーに保存されません
-    - 個人情報の取り扱いには十分ご注意ください
-    """)
-
-
 # メイン機能
 def main():
     # テキスト入力
     input_text = st.text_area(
-        "電子カルテのテキストデータから退院時サマリを作成します",
+        "入力および出力テキストは保存されません",
         height=100,
         placeholder="ここにテキストを貼り付けてください..."
     )
