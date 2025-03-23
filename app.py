@@ -4,7 +4,7 @@ from utils.env_loader import load_environment_variables
 from utils.gemini_api import generate_discharge_summary
 from utils.text_processor import format_discharge_summary, parse_discharge_summary
 from utils.auth import login_ui, require_login, logout, get_current_user
-from utils.config import get_config
+from utils.config import get_config, GEMINI_CREDENTIALS
 
 load_environment_variables()
 
@@ -45,8 +45,8 @@ def main_app():
 
     # 実行ボタン
     if st.button("退院時サマリ作成", type="primary"):
-        # APIキーが設定されているか環境変数を確認
-        if not os.environ.get("GEMINI_CREDENTIALS"):
+        # APIキーが設定されているか確認
+        if not GEMINI_CREDENTIALS:
             st.error("⚠️ Gemini APIの認証情報が設定されていません。環境変数を確認してください。")
             return
 

@@ -2,7 +2,7 @@ import os
 import streamlit as st
 import bcrypt
 from pymongo import MongoClient
-from utils.config import get_config
+from utils.config import get_config, MONGODB_URI
 from utils.env_loader import load_environment_variables
 
 load_environment_variables()
@@ -10,19 +10,10 @@ load_environment_variables()
 
 def get_mongo_client():
     """MongoDB Atlasに接続するクライアントを取得"""
-    config = get_config()
-
-    # まず環境変数から接続URIを取得
-    mongo_uri = os.environ.get("MONGODB_URI")
-
-    # 環境変数がない場合は設定ファイルから取得
-    if not mongo_uri:
-        mongo_uri = config.get('MONGODB', 'uri', fallback=None)
-
-    if not mongo_uri:
+    if not MONGODB_URI:
         raise ValueError("MongoDB接続情報が設定されていません。環境変数または設定ファイルを確認してください。")
 
-    return MongoClient(mongo_uri)
+    return MongoClient(MONGODB_URI)
 
 
 def get_users_collection():

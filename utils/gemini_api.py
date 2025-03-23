@@ -2,19 +2,16 @@ import os
 import json
 import google.generativeai as genai
 
-from utils.config import get_config
+from utils.config import get_config, GEMINI_CREDENTIALS
 
 
 def initialize_gemini():
     try:
-        if 'GEMINI_CREDENTIALS' in os.environ:
-            api_key = os.environ.get('GEMINI_CREDENTIALS')
-
-            if not api_key:
-                raise ValueError("認証情報にapi_keyが含まれていません。")
-
-            genai.configure(api_key=api_key)
+        if GEMINI_CREDENTIALS:
+            genai.configure(api_key=GEMINI_CREDENTIALS)
             return True
+        else:
+            raise ValueError("Gemini API認証情報が設定されていません。")
 
     except Exception as e:
         raise Exception(f"Gemini API初期化エラー: {str(e)}")
