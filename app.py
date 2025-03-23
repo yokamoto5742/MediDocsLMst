@@ -3,7 +3,7 @@ import os
 from utils.env_loader import load_environment_variables
 from utils.gemini_api import generate_discharge_summary
 from utils.text_processor import format_discharge_summary, parse_discharge_summary
-from utils.auth import login_ui, require_login, logout, get_current_user
+from utils.auth import login_ui, require_login, logout, get_current_user, password_change_ui
 from utils.config import get_config, GEMINI_CREDENTIALS
 
 load_environment_variables()
@@ -19,10 +19,16 @@ if "discharge_summary" not in st.session_state:
     st.session_state.discharge_summary = ""
 if "parsed_summary" not in st.session_state:
     st.session_state.parsed_summary = {}
+if "show_password_change" not in st.session_state:
+    st.session_state.show_password_change = False
 
 # 設定の読み込み
 config = get_config()
 require_login_setting = config.getboolean('AUTH', 'require_login', fallback=True)
+
+
+def toggle_password_change():
+    st.session_state.show_password_change = not st.session_state.show_password_change
 
 
 def main_app():
@@ -32,9 +38,24 @@ def main_app():
     user = get_current_user()
     if user:
         st.sidebar.success(f"ログイン中: {user['username']}")
-        if st.sidebar.button("ログアウト"):
-            logout()
-            st.rerun()
+
+        # パスワード変更ボタンとログアウトボタンを表示
+        col1, col2 = st.sidebar.columns(2)
+        with col1:
+            if st.button("パスワード変更", key="show_password_change_button"):
+                toggle_password_change()
+        with col2:
+            if st.button("ログアウト"):
+                logout()
+                st.rerun()
+
+        # パスワード変更UIの表示
+        if st.session_state.show_password_change:
+            with st.sidebar:
+                password_change_ui()
+                if st.button("キャンセル"):
+                    st.session_state.show_password_change = False
+                    st.rerun()
 
     # テキスト入力
     input_text = st.text_area(
