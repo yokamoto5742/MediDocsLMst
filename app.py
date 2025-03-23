@@ -1,9 +1,12 @@
 import streamlit as st
 import os
+from utils.env_loader import load_environment_variables
 from utils.gemini_api import generate_discharge_summary
 from utils.text_processor import format_discharge_summary, parse_discharge_summary
 from utils.auth import login_ui, require_login, logout, get_current_user
 from utils.config import get_config
+
+load_environment_variables()
 
 st.set_page_config(
     page_title="退院時サマリ作成アプリ",
