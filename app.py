@@ -103,7 +103,7 @@ def main_app():
                 st.text_area(
                     "生成結果 (全文)",
                     value=st.session_state.discharge_summary,
-                    height=300
+                    height=150
                 )
 
             # 各項目タブ
@@ -114,10 +114,10 @@ def main_app():
                     st.text_area(
                         f"{section}",
                         value=section_content,
-                        height=300
+                        height=150
                     )
 
-        st.info("💡 テキストを選択して Ctrl+C でコピーできます")
+        st.info("💡 Ctrl+A でテキストを全選択して Ctrl+C でコピーできます")
 
 
 def main():
