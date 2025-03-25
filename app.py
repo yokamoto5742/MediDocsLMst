@@ -5,6 +5,7 @@ from utils.gemini_api import generate_discharge_summary
 from utils.text_processor import format_discharge_summary, parse_discharge_summary
 from utils.auth import login_ui, require_login, logout, get_current_user, password_change_ui
 from utils.config import get_config, GEMINI_CREDENTIALS, REQUIRE_LOGIN
+from st_copy_to_clipboard import st_copy_to_clipboard
 
 load_environment_variables()
 
@@ -100,11 +101,13 @@ def main_app():
 
             # 全文タブ
             with tabs[0]:
+                full_text = st.session_state.discharge_summary
                 st.text_area(
                     "生成結果 (全文)",
-                    value=st.session_state.discharge_summary,
+                    value=full_text,
                     height=300
                 )
+                st_copy_to_clipboard(full_text, "全文をコピー")
 
             # 各項目タブ
             sections = ["入院期間", "現病歴", "入院時検査", "入院中の治療経過", "退院申し送り", "禁忌/アレルギー"]
@@ -116,8 +119,9 @@ def main_app():
                         value=section_content,
                         height=300
                     )
+                    st_copy_to_clipboard(section_content, f"{section}をコピー")
 
-        st.info("💡 テキストを選択して Ctrl+C でコピーできます")
+            st.info("💡 コピーボタンをクリックしてテキストをクリップボードにコピーできます")
 
 
 def main():
