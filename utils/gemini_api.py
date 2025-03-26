@@ -28,9 +28,7 @@ def create_discharge_summary_prompt(medical_text):
 def generate_discharge_summary(medical_text):
     try:
         initialize_gemini()
-        config = get_config()
-        model_name = config['GEMINI']['model']
-
+        model_name = os.environ.get("GEMINI_MODEL")
         model = genai.GenerativeModel(model_name)
 
         # プロンプトの作成

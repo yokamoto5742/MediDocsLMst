@@ -23,8 +23,8 @@ MONGODB_URI = os.environ.get("MONGODB_URI")
 MONGODB_DB_NAME = os.environ.get("MONGODB_DB_NAME")
 MONGODB_USERS_COLLECTION = os.environ.get("MONGODB_USERS_COLLECTION")
 
-# Gemini API認証情報
 GEMINI_CREDENTIALS = os.environ.get("GEMINI_CREDENTIALS")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL")
 
 # アプリの認証設定
 REQUIRE_LOGIN = os.environ.get("REQUIRE_LOGIN", "True").lower() in ("true", "1", "yes")
