@@ -31,9 +31,6 @@ def toggle_password_change():
 
 
 def main_app():
-    st.title("退院時サマリ作成アプリ")
-
-    # 現在のユーザー情報を表示
     user = get_current_user()
     if user:
         st.sidebar.success(f"ログイン中: {user['username']}")
@@ -60,12 +57,11 @@ def main_app():
     input_text = st.text_area(
         "入力および出力テキストは保存されません",
         height=100,
-        placeholder="ここにテキストを貼り付けてください..."
+        placeholder="ここを右クリックしてテキストを貼り付けてください..."
     )
 
     # 実行ボタン
     if st.button("退院時サマリ作成", type="primary"):
-        # APIキーが設定されているか確認
         if not GEMINI_CREDENTIALS:
             st.error("⚠️ Gemini APIの認証情報が設定されていません。環境変数を確認してください。")
             return
