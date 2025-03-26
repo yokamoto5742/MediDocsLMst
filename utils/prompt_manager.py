@@ -90,22 +90,25 @@ def create_department(name):
     
     return True, "診療科を登録しました"
 
+
 def delete_department(name):
     """診療科を削除"""
     department_collection = get_department_collection()
     prompt_collection = get_prompt_collection()
-    
+
     # 削除前にこの診療科に紐づくプロンプトを確認
-    prompts = prompt_collection.find({"department": name})
-    if prompts.count() > 0:
+    # エラー修正: count()メソッドをcount_documents()に変更
+    prompt_count = prompt_collection.count_documents({"department": name})
+    if prompt_count > 0:
         return False, "この診療科に紐づくプロンプトが存在するため削除できません"
-    
+
     # 診療科を削除
     result = department_collection.delete_one({"name": name})
     if result.deleted_count == 0:
         return False, "診療科が見つかりません"
-    
+
     return True, "診療科を削除しました"
+
 
 def get_prompt_by_department(department="default"):
     """指定された診療科のプロンプトを取得"""
@@ -163,13 +166,13 @@ def delete_prompt(department):
     """プロンプトを削除"""
     if department == "default":
         return False, "デフォルトプロンプトは削除できません"
-    
+
     prompt_collection = get_prompt_collection()
     result = prompt_collection.delete_one({"department": department})
-    
+
     if result.deleted_count == 0:
         return False, "プロンプトが見つかりません"
-    
+
     return True, "プロンプトを削除しました"
 
 def initialize_database():
