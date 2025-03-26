@@ -234,3 +234,15 @@ def password_change_ui():
                 st.error(message)
         except Exception as e:
             st.error(f"パスワード変更エラー: {str(e)}")
+
+
+def can_edit_prompts():
+    """プロンプト編集権限があるかどうかを判定"""
+    from utils.config import REQUIRE_LOGIN
+
+    # ログイン不要モードの場合は誰でも編集可能
+    if not REQUIRE_LOGIN:
+        return True
+
+    # ログイン必須モードの場合は管理者のみ編集可能
+    return is_admin()

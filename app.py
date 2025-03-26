@@ -3,10 +3,16 @@ import os
 from utils.env_loader import load_environment_variables
 from utils.gemini_api import generate_discharge_summary
 from utils.text_processor import format_discharge_summary, parse_discharge_summary
-from utils.auth import login_ui, require_login, logout, get_current_user, password_change_ui
+from utils.auth import login_ui, require_login, logout, get_current_user, password_change_ui, can_edit_prompts
 from utils.config import get_config, GEMINI_CREDENTIALS, REQUIRE_LOGIN
+from utils.prompt_manager import (
+    initialize_database, get_all_departments, get_all_prompts,
+    create_or_update_prompt, delete_prompt, get_prompt_by_department,
+    create_department, delete_department
+)
 
 load_environment_variables()
+initialize_database()  # データベースの初期化
 
 st.set_page_config(
     page_title="退院時サマリ作成アプリ",
@@ -21,6 +27,10 @@ if "parsed_summary" not in st.session_state:
     st.session_state.parsed_summary = {}
 if "show_password_change" not in st.session_state:
     st.session_state.show_password_change = False
+if "selected_department" not in st.session_state:
+    st.session_state.selected_department = "default"
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "main"  # main, prompt_edit, department_edit
 
 # 設定の読み込み
 require_login_setting = REQUIRE_LOGIN
@@ -28,6 +38,108 @@ require_login_setting = REQUIRE_LOGIN
 
 def toggle_password_change():
     st.session_state.show_password_change = not st.session_state.show_password_change
+
+
+def change_page(page):
+    st.session_state.current_page = page
+
+
+def department_management_ui():
+    """診療科管理UI"""
+    st.title("診療科管理")
+
+    # 戻るボタン
+    if st.button("メイン画面に戻る", key="back_to_main_from_dept"):
+        change_page("main")
+        st.rerun()
+
+    # 診療科一覧
+    st.subheader("診療科一覧")
+    departments = get_all_departments()
+    for dept in departments:
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.write(dept)
+        with col2:
+            if dept not in ["内科", "外科", "整形外科", "小児科", "産婦人科", "その他"]:  # 基本診療科は削除不可
+                if st.button("削除", key=f"delete_{dept}"):
+                    success, message = delete_department(dept)
+                    if success:
+                        st.success(message)
+                    else:
+                        st.error(message)
+                    st.rerun()
+
+    # 診療科追加フォーム
+    st.subheader("診療科追加")
+    with st.form("add_department_form"):
+        new_dept = st.text_input("診療科名")
+        submit = st.form_submit_button("追加")
+
+        if submit and new_dept:
+            success, message = create_department(new_dept)
+            if success:
+                st.success(message)
+            else:
+                st.error(message)
+            st.rerun()
+
+
+def prompt_management_ui():
+    """プロンプト管理UI"""
+    st.title("プロンプト管理")
+
+    # 戻るボタン
+    if st.button("メイン画面に戻る", key="back_to_main"):
+        change_page("main")
+        st.rerun()
+
+    # 診療科選択
+    departments = ["default"] + get_all_departments()
+    selected_dept = st.selectbox(
+        "診療科を選択",
+        departments,
+        format_func=lambda x: "全科共通" if x == "default" else x
+    )
+
+    # 選択された診療科のプロンプトを取得
+    prompt_data = get_prompt_by_department(selected_dept)
+
+    # プロンプト編集フォーム
+    with st.form("edit_prompt_form"):
+        prompt_name = st.text_input(
+            "プロンプト名",
+            value=prompt_data.get("name", "") if prompt_data else "退院時サマリ"
+        )
+        prompt_content = st.text_area(
+            "プロンプト内容",
+            value=prompt_data.get("content", "") if prompt_data else "",
+            height=300
+        )
+
+        col1, col2 = st.columns(2)
+        with col1:
+            submit = st.form_submit_button("保存")
+        with col2:
+            if selected_dept != "default":
+                delete_button = st.form_submit_button("削除")
+            else:
+                delete_button = False
+
+        if submit:
+            success, message = create_or_update_prompt(selected_dept, prompt_name, prompt_content)
+            if success:
+                st.success(message)
+            else:
+                st.error(message)
+
+        if delete_button:
+            success, message = delete_prompt(selected_dept)
+            if success:
+                st.success(message)
+                st.rerun()
+            else:
+                st.error(message)
 
 
 def main_app():
@@ -53,6 +165,43 @@ def main_app():
                     st.session_state.show_password_change = False
                     st.rerun()
 
+    # 管理メニュー（プロンプト編集権限がある場合のみ表示）
+    if can_edit_prompts():
+        st.sidebar.subheader("管理メニュー")
+        col1, col2 = st.sidebar.columns(2)
+        with col1:
+            if st.button("プロンプト管理", key="prompt_management"):
+                change_page("prompt_edit")
+                st.rerun()
+        with col2:
+            if st.button("診療科管理", key="department_management"):
+                change_page("department_edit")
+                st.rerun()
+
+    # 現在のページに応じてUIを表示
+    if st.session_state.current_page == "prompt_edit":
+        prompt_management_ui()
+        return
+    elif st.session_state.current_page == "department_edit":
+        department_management_ui()
+        return
+
+    # メイン画面
+    st.title("退院時サマリ作成アプリ")
+
+    # 診療科選択
+    departments = ["default"] + get_all_departments()
+    selected_dept = st.sidebar.selectbox(
+        "診療科",
+        departments,
+        index=departments.index(st.session_state.selected_department),
+        format_func=lambda x: "全科共通" if x == "default" else x,
+        key="department_selector"
+    )
+
+    # 選択された診療科を保存
+    st.session_state.selected_department = selected_dept
+
     # テキスト入力
     input_text = st.text_area(
         "入力および出力テキストは保存されません",
@@ -72,7 +221,8 @@ def main_app():
 
         try:
             with st.spinner("退院時サマリを作成中..."):
-                discharge_summary = generate_discharge_summary(input_text)
+                # 選択された診療科のプロンプトを使用
+                discharge_summary = generate_discharge_summary(input_text, st.session_state.selected_department)
 
                 discharge_summary = format_discharge_summary(discharge_summary)
 
