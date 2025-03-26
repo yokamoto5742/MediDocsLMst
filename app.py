@@ -186,9 +186,6 @@ def main_app():
         department_management_ui()
         return
 
-    # メイン画面
-    st.title("退院時サマリ作成アプリ")
-
     # 診療科選択
     departments = ["default"] + get_all_departments()
     selected_dept = st.sidebar.selectbox(
