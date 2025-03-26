@@ -2,7 +2,7 @@ import os
 import json
 import google.generativeai as genai
 
-from utils.config import get_config, GEMINI_CREDENTIALS
+from utils.config import get_config, GEMINI_CREDENTIALS, GEMINI_MODEL
 
 
 def initialize_gemini():

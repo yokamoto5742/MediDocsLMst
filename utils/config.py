@@ -18,7 +18,6 @@ def get_config():
 
 load_dotenv()
 
-# MongoDB接続情報
 MONGODB_URI = os.environ.get("MONGODB_URI")
 MONGODB_DB_NAME = os.environ.get("MONGODB_DB_NAME")
 MONGODB_USERS_COLLECTION = os.environ.get("MONGODB_USERS_COLLECTION")
