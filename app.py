@@ -142,6 +142,22 @@ def prompt_management_ui():
                 st.error(message)
 
 
+# セッション状態の初期化
+if "input_text" not in st.session_state:
+    st.session_state.input_text = ""
+
+def clear_input_and_output():
+    """入力と出力をクリアする関数"""
+    # 出力をクリア
+    if "discharge_summary" in st.session_state:
+        st.session_state.discharge_summary = ""
+    if "parsed_summary" in st.session_state:
+        st.session_state.parsed_summary = {}
+    # 入力をクリア
+    if "input_text" in st.session_state:
+        st.session_state.input_text = ""
+
+
 def main_app():
     user = get_current_user()
     if user:
@@ -197,38 +213,49 @@ def main_app():
             change_page("prompt_edit")
             st.rerun()
 
-    # テキスト入力
     input_text = st.text_area(
         "カルテ情報入力",
+        value=st.session_state.input_text,
         height=100,
-        placeholder="ここを右クリックしてテキストを貼り付けてください..."
+        placeholder="ここを右クリックしてテキストを貼り付けてください...",
+        key="input_text_area"
     )
 
+    st.session_state.input_text = input_text
+
+    col1, col2 = st.columns(2)
+
     # 実行ボタン
-    if st.button("退院時サマリ作成", type="primary"):
-        if not GEMINI_CREDENTIALS:
-            st.error("⚠️ Gemini APIの認証情報が設定されていません。環境変数を確認してください。")
-            return
+    with col1:
+        if st.button("退院時サマリ作成", type="primary"):
+            if not GEMINI_CREDENTIALS:
+                st.error("⚠️ Gemini APIの認証情報が設定されていません。環境変数を確認してください。")
+                return
 
-        if not input_text or len(input_text.strip()) < 10:
-            st.warning("⚠️ カルテ情報を入力してください")
-            return
+            if not input_text or len(input_text.strip()) < 10:
+                st.warning("⚠️ カルテ情報を入力してください")
+                return
 
-        try:
-            with st.spinner("退院時サマリを作成中..."):
-                # 選択された診療科のプロンプトを使用
-                discharge_summary = generate_discharge_summary(input_text, st.session_state.selected_department)
+            try:
+                with st.spinner("退院時サマリを作成中..."):
+                    # 選択された診療科のプロンプトを使用
+                    discharge_summary = generate_discharge_summary(input_text, st.session_state.selected_department)
 
-                discharge_summary = format_discharge_summary(discharge_summary)
+                    discharge_summary = format_discharge_summary(discharge_summary)
 
-                st.session_state.discharge_summary = discharge_summary
+                    st.session_state.discharge_summary = discharge_summary
 
-                # 退院時サマリを項目ごとに分割
-                parsed_summary = parse_discharge_summary(discharge_summary)
-                st.session_state.parsed_summary = parsed_summary
+                    # 退院時サマリを項目ごとに分割
+                    parsed_summary = parse_discharge_summary(discharge_summary)
+                    st.session_state.parsed_summary = parsed_summary
 
-        except Exception as e:
-            st.error(f"エラーが発生しました: {str(e)}")
+            except Exception as e:
+                st.error(f"エラーが発生しました: {str(e)}")
+
+    with col2:
+        if st.button("結果のクリア"):
+            clear_input_and_output()
+            st.rerun()
 
     if st.session_state.discharge_summary:
         # 退院時サマリの表示
