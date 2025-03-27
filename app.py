@@ -156,6 +156,8 @@ def clear_input_and_output():
     # 入力をクリア
     if "input_text" in st.session_state:
         st.session_state.input_text = ""
+    # 再読み込みしてUIを更新
+    st.rerun()
 
 
 def main_app():
@@ -253,7 +255,7 @@ def main_app():
                 st.error(f"エラーが発生しました: {str(e)}")
 
     with col2:
-        if st.button("結果のクリア"):
+        if st.button("テキストをクリア"):
             clear_input_and_output()
             st.rerun()
 
@@ -269,7 +271,7 @@ def main_app():
             # 全文タブ
             with tabs[0]:
                 st.text_area(
-                    "生成結果 (全文)",
+                    "全文",
                     value=st.session_state.discharge_summary,
                     height=150
                 )
