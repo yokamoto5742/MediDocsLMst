@@ -165,27 +165,6 @@ def main_app():
                     st.session_state.show_password_change = False
                     st.rerun()
 
-    # 管理メニュー（プロンプト編集権限がある場合のみ表示）
-    if can_edit_prompts():
-        st.sidebar.subheader("管理メニュー")
-        col1, col2 = st.sidebar.columns(2)
-        with col1:
-            if st.button("プロンプト管理", key="prompt_management"):
-                change_page("prompt_edit")
-                st.rerun()
-        with col2:
-            if st.button("診療科管理", key="department_management"):
-                change_page("department_edit")
-                st.rerun()
-
-    # 現在のページに応じてUIを表示
-    if st.session_state.current_page == "prompt_edit":
-        prompt_management_ui()
-        return
-    elif st.session_state.current_page == "department_edit":
-        department_management_ui()
-        return
-
     # 診療科選択
     departments = ["default"] + get_all_departments()
     selected_dept = st.sidebar.selectbox(
@@ -199,9 +178,28 @@ def main_app():
     # 選択された診療科を保存
     st.session_state.selected_department = selected_dept
 
+    if st.session_state.current_page == "prompt_edit":
+        prompt_management_ui()
+        return
+    elif st.session_state.current_page == "department_edit":
+        department_management_ui()
+        return
+
+    st.sidebar.markdown("・入力および出力テキストは保存されません")
+    st.sidebar.markdown("・出力内容は必ず確認してください")
+
+    # 管理メニュー（プロンプト編集権限がある場合のみ表示）
+    if can_edit_prompts():
+        if st.sidebar.button("診療科管理", key="department_management"):
+            change_page("department_edit")
+            st.rerun()
+        if st.sidebar.button("プロンプト管理", key="prompt_management"):
+            change_page("prompt_edit")
+            st.rerun()
+
     # テキスト入力
     input_text = st.text_area(
-        "入力および出力テキストは保存されません",
+        "カルテ情報入力",
         height=100,
         placeholder="ここを右クリックしてテキストを貼り付けてください..."
     )
