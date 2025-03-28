@@ -153,11 +153,13 @@ def clear_input_and_output():
         st.session_state.discharge_summary = ""
     if "parsed_summary" in st.session_state:
         st.session_state.parsed_summary = {}
-    # 入力をクリア
+    # 入力をクリア - 直接キーを指定
     if "input_text" in st.session_state:
         st.session_state.input_text = ""
-    # 再読み込みしてUIを更新
-    st.rerun()
+    # 強制的にセッション状態をクリア
+    for key in list(st.session_state.keys()):
+        if key.startswith("input_text"):  # input_textに関連するキーをすべてクリア
+            st.session_state[key] = ""
 
 
 def main_app():
@@ -215,15 +217,21 @@ def main_app():
             change_page("prompt_edit")
             st.rerun()
 
+    if "clear_input" not in st.session_state:
+        st.session_state.clear_input = False
+
+    def clear_inputs():
+        st.session_state.input_text = ""
+        st.session_state.discharge_summary = ""
+        st.session_state.parsed_summary = {}
+        st.session_state.clear_input = True
+
     input_text = st.text_area(
         "カルテ情報入力",
-        value=st.session_state.input_text,
         height=100,
         placeholder="ここを右クリックしてテキストを貼り付けてください...",
-        key="input_text_area"
+        key="input_text"
     )
-
-    st.session_state.input_text = input_text
 
     col1, col2 = st.columns(2)
 
@@ -255,9 +263,8 @@ def main_app():
                 st.error(f"エラーが発生しました: {str(e)}")
 
     with col2:
-        if st.button("テキストをクリア"):
-            clear_input_and_output()
-            st.rerun()
+        if st.button("テキストをクリア", on_click=clear_inputs):
+            pass
 
     if st.session_state.discharge_summary:
         # 退院時サマリの表示
