@@ -15,6 +15,8 @@ from utils.text_processor import format_discharge_summary, parse_discharge_summa
 load_environment_variables()
 initialize_database()
 
+require_login_setting = REQUIRE_LOGIN
+
 st.set_page_config(
     page_title="退院時サマリ作成アプリ",
     page_icon="🏥",
@@ -33,7 +35,7 @@ if "selected_department" not in st.session_state:
 if "current_page" not in st.session_state:
     st.session_state.current_page = "main"
 
-require_login_setting = REQUIRE_LOGIN
+
 
 
 def toggle_password_change():
@@ -135,15 +137,12 @@ if "input_text" not in st.session_state:
     st.session_state.input_text = ""
 
 
-def clear_input_and_output():
-    if "input_text" in st.session_state:
-        st.session_state.input_text = ""
-    if "discharge_summary" in st.session_state:
-        st.session_state.discharge_summary = ""
-    if "parsed_summary" in st.session_state:
-        st.session_state.parsed_summary = {}
+def clear_inputs():
+    st.session_state.input_text = ""
+    st.session_state.discharge_summary = ""
+    st.session_state.parsed_summary = {}
+    st.session_state.clear_input = True
 
-    # セッション状態を強制的にクリア
     for key in list(st.session_state.keys()):
         if key.startswith("input_text"):
             st.session_state[key] = ""
@@ -201,12 +200,6 @@ def main_app():
 
     if "clear_input" not in st.session_state:
         st.session_state.clear_input = False
-
-    def clear_inputs():
-        st.session_state.input_text = ""
-        st.session_state.discharge_summary = ""
-        st.session_state.parsed_summary = {}
-        st.session_state.clear_input = True
 
     input_text = st.text_area(
         "カルテ情報入力",
