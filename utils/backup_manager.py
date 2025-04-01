@@ -1,9 +1,45 @@
-import os
-import json
 import datetime
+import json
+import os
 from pathlib import Path
+
+from utils.env_loader import load_environment_variables
 from utils.config import get_mongodb_connection
-from utils.prompt_manager import get_prompt_collection, get_all_prompts, get_department_collection, get_all_departments
+from utils.prompt_manager import get_all_departments, get_all_prompts, get_department_collection, get_prompt_collection
+
+
+def get_backup_dir(backup_type):
+    """
+    Configから指定されたタイプのバックアップディレクトリを取得する関数
+    設定が存在しない場合はデフォルトディレクトリを返す
+
+    Args:
+        backup_type (str): 'prompts' または 'departments'
+
+    Returns:
+        str: バックアップディレクトリのパス
+    """
+    config = get_config()
+    root_dir = Path(__file__).parent.parent
+
+    # Config.iniに[BACKUP]セクションがあるか確認
+    if 'BACKUP' in config:
+        if backup_type == 'prompts' and 'prompts_dir' in config['BACKUP']:
+            # 相対パスの場合は絶対パスに変換
+            dir_path = config['BACKUP']['prompts_dir']
+            if not os.path.isabs(dir_path):
+                dir_path = os.path.join(root_dir, dir_path)
+            return dir_path
+        elif backup_type == 'departments' and 'departments_dir' in config['BACKUP']:
+            # 相対パスの場合は絶対パスに変換
+            dir_path = config['BACKUP']['departments_dir']
+            if not os.path.isabs(dir_path):
+                dir_path = os.path.join(root_dir, dir_path)
+            return dir_path
+
+    # 設定がない場合はデフォルト値を使用
+    default_dir = os.path.join(root_dir, 'backups', backup_type)
+    return default_dir
 
 
 def backup_prompts(backup_dir=None):
@@ -12,16 +48,14 @@ def backup_prompts(backup_dir=None):
 
     Args:
         backup_dir (str, optional): バックアップファイルを保存するディレクトリ
-            指定がない場合はプロジェクトルートの下に 'backups/prompts' ディレクトリを作成
+            指定がない場合はConfig.iniの設定またはデフォルトディレクトリを使用
 
     Returns:
         str: バックアップファイルのパス
     """
     # バックアップディレクトリの設定
     if backup_dir is None:
-        # プロジェクトルートディレクトリを取得
-        root_dir = Path(__file__).parent.parent
-        backup_dir = os.path.join(root_dir, 'backups', 'prompts')
+        backup_dir = get_backup_dir('prompts')
 
     # バックアップディレクトリが存在しない場合は作成
     os.makedirs(backup_dir, exist_ok=True)
@@ -49,14 +83,14 @@ def backup_departments(backup_dir=None):
 
     Args:
         backup_dir (str, optional): バックアップファイルを保存するディレクトリ
+            指定がない場合はConfig.iniの設定またはデフォルトディレクトリを使用
 
     Returns:
         str: バックアップファイルのパス
     """
     # バックアップディレクトリの設定
     if backup_dir is None:
-        root_dir = Path(__file__).parent.parent
-        backup_dir = os.path.join(root_dir, 'backups', 'departments')
+        backup_dir = get_backup_dir('departments')
 
     os.makedirs(backup_dir, exist_ok=True)
 
@@ -185,9 +219,8 @@ def list_backup_files():
     """
     バックアップファイルの一覧を表示する関数
     """
-    root_dir = Path(__file__).parent.parent
-    prompts_dir = os.path.join(root_dir, 'backups', 'prompts')
-    departments_dir = os.path.join(root_dir, 'backups', 'departments')
+    prompts_dir = get_backup_dir('prompts')
+    departments_dir = get_backup_dir('departments')
 
     print("\n=== プロンプトバックアップファイル ===")
     if os.path.exists(prompts_dir):
@@ -219,7 +252,9 @@ def list_backup_files():
 
 
 if __name__ == "__main__":
-    # スクリプト単体で実行した場合のメイン処理
+    # 環境変数の読み込み
+    load_environment_variables()
+
     print("データベースバックアップユーティリティ")
     print("1. バックアップの作成")
     print("2. バックアップの復元")
