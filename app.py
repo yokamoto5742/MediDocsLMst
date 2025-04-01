@@ -275,26 +275,24 @@ def main_app():
                 "入院中の治療経過", "退院申し送り", "禁忌/アレルギー"
             ])
 
-            # 全文タブ
             with tabs[0]:
-                st.text_area(
-                    "全文",
-                    value=st.session_state.discharge_summary,
-                    height=150
-                )
+                st.subheader("全文")
+                st.code(st.session_state.discharge_summary,
+                        language=None,
+                        height=150
+                        )
 
-            # 各項目タブ
             sections = ["入院期間", "現病歴", "入院時検査", "入院中の治療経過", "退院申し送り", "禁忌/アレルギー"]
             for i, section in enumerate(sections, 1):
                 with tabs[i]:
                     section_content = st.session_state.parsed_summary.get(section, "")
-                    st.text_area(
-                        f"{section}",
-                        value=section_content,
-                        height=150
-                    )
+                    st.subheader(section)
+                    st.code(section_content,
+                            language=None,
+                            height=150
+                            )
 
-        st.info("💡 Ctrl+A でテキストを全選択して Ctrl+C でコピーできます")
+        st.info("💡 テキストエリアの右上にマウスを合わせ、左クリックでコピーできます")
 
 
 def main():
