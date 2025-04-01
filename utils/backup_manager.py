@@ -4,215 +4,132 @@ import os
 from pathlib import Path
 
 from utils.env_loader import load_environment_variables
-from utils.config import get_mongodb_connection
+from utils.config import get_mongodb_connection, get_config
 from utils.prompt_manager import get_all_departments, get_all_prompts, get_department_collection, get_prompt_collection
 
 
 def get_backup_dir(backup_type):
-    """
-    Configから指定されたタイプのバックアップディレクトリを取得する関数
-    設定が存在しない場合はデフォルトディレクトリを返す
-
-    Args:
-        backup_type (str): 'prompts' または 'departments'
-
-    Returns:
-        str: バックアップディレクトリのパス
-    """
     config = get_config()
     root_dir = Path(__file__).parent.parent
 
-    # Config.iniに[BACKUP]セクションがあるか確認
     if 'BACKUP' in config:
         if backup_type == 'prompts' and 'prompts_dir' in config['BACKUP']:
-            # 相対パスの場合は絶対パスに変換
             dir_path = config['BACKUP']['prompts_dir']
             if not os.path.isabs(dir_path):
                 dir_path = os.path.join(root_dir, dir_path)
             return dir_path
+
         elif backup_type == 'departments' and 'departments_dir' in config['BACKUP']:
-            # 相対パスの場合は絶対パスに変換
             dir_path = config['BACKUP']['departments_dir']
             if not os.path.isabs(dir_path):
                 dir_path = os.path.join(root_dir, dir_path)
             return dir_path
 
-    # 設定がない場合はデフォルト値を使用
     default_dir = os.path.join(root_dir, 'backups', backup_type)
     return default_dir
 
 
-def backup_prompts(backup_dir=None):
+def backup_data(data_type, backup_dir=None):
     """
-    データベースに保存されているプロンプトをJSONファイルにバックアップする関数
-
-    Args:
-        backup_dir (str, optional): バックアップファイルを保存するディレクトリ
-            指定がない場合はConfig.iniの設定またはデフォルトディレクトリを使用
-
-    Returns:
-        str: バックアップファイルのパス
+    データベースに保存されているデータをJSONファイルにバックアップする関数
     """
-    # バックアップディレクトリの設定
     if backup_dir is None:
-        backup_dir = get_backup_dir('prompts')
+        backup_dir = get_backup_dir(data_type)
 
-    # バックアップディレクトリが存在しない場合は作成
     os.makedirs(backup_dir, exist_ok=True)
 
-    # タイムスタンプをファイル名に含める
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"prompts_backup_{timestamp}.json"
+    filename = f"{data_type}_backup_{timestamp}.json"
     backup_path = os.path.join(backup_dir, filename)
 
-    # プロンプトデータを取得
-    prompt_collection = get_prompt_collection()
-    prompts = list(prompt_collection.find({}, {'_id': False}))  # _idフィールドは除外
+    # データタイプに応じたコレクション取得
+    if data_type == 'prompts':
+        collection = get_prompt_collection()
+        success_message = "プロンプトのバックアップが完了しました"
+    elif data_type == 'departments':
+        collection = get_department_collection()
+        success_message = "診療科のバックアップが完了しました"
+    else:
+        raise ValueError(f"不明なデータタイプ: {data_type}")
+
+    data = list(collection.find({}, {'_id': False}))
 
     # データをJSONファイルに書き込む
     with open(backup_path, 'w', encoding='utf-8') as f:
-        json.dump(prompts, f, ensure_ascii=False, indent=2, default=str)
+        json.dump(data, f, ensure_ascii=False, indent=2, default=str)
 
-    print(f"プロンプトのバックアップが完了しました: {backup_path}")
+    print(f"{success_message}: {backup_path}")
     return backup_path
+
+
+def backup_prompts(backup_dir=None):
+    return backup_data('prompts', backup_dir)
 
 
 def backup_departments(backup_dir=None):
+    return backup_data('departments', backup_dir)
+
+
+def restore_data(backup_file, data_type):
     """
-    データベースに保存されている診療科をJSONファイルにバックアップする関数
-
-    Args:
-        backup_dir (str, optional): バックアップファイルを保存するディレクトリ
-            指定がない場合はConfig.iniの設定またはデフォルトディレクトリを使用
-
-    Returns:
-        str: バックアップファイルのパス
+    バックアップファイルからデータを復元する関数
     """
-    # バックアップディレクトリの設定
-    if backup_dir is None:
-        backup_dir = get_backup_dir('departments')
+    if not os.path.exists(backup_file):
+        print(f"エラー: バックアップファイルが見つかりません: {backup_file}")
+        return False
 
-    os.makedirs(backup_dir, exist_ok=True)
+    try:
+        with open(backup_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
 
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"departments_backup_{timestamp}.json"
-    backup_path = os.path.join(backup_dir, filename)
+        # データタイプに応じたコレクション取得とメッセージ設定
+        if data_type == 'prompts':
+            collection = get_prompt_collection()
+            id_field = "department"
+            success_message = "プロンプト"
+        elif data_type == 'departments':
+            collection = get_department_collection()
+            id_field = "name"
+            success_message = "診療科"
+        else:
+            raise ValueError(f"不明なデータタイプ: {data_type}")
 
-    # 診療科データを取得
-    department_collection = get_department_collection()
-    departments = list(department_collection.find({}, {'_id': False}))
+        # 既存のデータをすべて削除（この操作は取り消せません)
+        if input(f"既存の{success_message}をすべて削除しますか？ (y/n): ").lower() == 'y':
+            collection.delete_many({})
+            print(f"既存の{success_message}をすべて削除しました")
 
-    # データをJSONファイルに書き込む
-    with open(backup_path, 'w', encoding='utf-8') as f:
-        json.dump(departments, f, ensure_ascii=False, indent=2, default=str)
+        # バックアップデータを挿入
+        for item in data:
+            if 'created_at' in item and isinstance(item['created_at'], str):
+                item['created_at'] = datetime.datetime.fromisoformat(item['created_at'].replace('Z', '+00:00'))
+            if 'updated_at' in item and isinstance(item['updated_at'], str):
+                item['updated_at'] = datetime.datetime.fromisoformat(item['updated_at'].replace('Z', '+00:00'))
 
-    print(f"診療科のバックアップが完了しました: {backup_path}")
-    return backup_path
+            existing = collection.find_one({id_field: item[id_field]})
+
+            if existing:
+                collection.update_one(
+                    {id_field: item[id_field]},
+                    {"$set": item}
+                )
+            else:
+                collection.insert_one(item)
+
+        print(f"{len(data)}件の{success_message}を正常に復元しました")
+        return True
+
+    except Exception as e:
+        print(f"{success_message}復元中にエラーが発生しました: {str(e)}")
+        return False
 
 
 def restore_prompts(backup_file):
-    """
-    バックアップファイルからプロンプトを復元する関数
-
-    Args:
-        backup_file (str): バックアップJSONファイルのパス
-
-    Returns:
-        bool: 復元が成功したかどうか
-    """
-    if not os.path.exists(backup_file):
-        print(f"エラー: バックアップファイルが見つかりません: {backup_file}")
-        return False
-
-    try:
-        # バックアップデータを読み込む
-        with open(backup_file, 'r', encoding='utf-8') as f:
-            prompts_data = json.load(f)
-
-        prompt_collection = get_prompt_collection()
-
-        # 既存のプロンプトをすべて削除（オプション）
-        # 注意: この操作は取り消せません
-        if input("既存のプロンプトをすべて削除しますか？ (y/n): ").lower() == 'y':
-            prompt_collection.delete_many({})
-            print("既存のプロンプトをすべて削除しました")
-
-        # バックアップデータを挿入
-        for prompt in prompts_data:
-            # created_at と updated_at を日付オブジェクトに変換
-            if 'created_at' in prompt and isinstance(prompt['created_at'], str):
-                prompt['created_at'] = datetime.datetime.fromisoformat(prompt['created_at'].replace('Z', '+00:00'))
-            if 'updated_at' in prompt and isinstance(prompt['updated_at'], str):
-                prompt['updated_at'] = datetime.datetime.fromisoformat(prompt['updated_at'].replace('Z', '+00:00'))
-
-            # department をキーにして既存のプロンプトを検索
-            existing = prompt_collection.find_one({"department": prompt["department"]})
-
-            if existing:
-                # 既存のプロンプトを更新
-                prompt_collection.update_one(
-                    {"department": prompt["department"]},
-                    {"$set": prompt}
-                )
-            else:
-                # 新規プロンプトを挿入
-                prompt_collection.insert_one(prompt)
-
-        print(f"{len(prompts_data)}件のプロンプトを正常に復元しました")
-        return True
-
-    except Exception as e:
-        print(f"プロンプト復元中にエラーが発生しました: {str(e)}")
-        return False
+    return restore_data(backup_file, 'prompts')
 
 
 def restore_departments(backup_file):
-    """
-    バックアップファイルから診療科を復元する関数
-
-    Args:
-        backup_file (str): バックアップJSONファイルのパス
-
-    Returns:
-        bool: 復元が成功したかどうか
-    """
-    if not os.path.exists(backup_file):
-        print(f"エラー: バックアップファイルが見つかりません: {backup_file}")
-        return False
-
-    try:
-        with open(backup_file, 'r', encoding='utf-8') as f:
-            departments_data = json.load(f)
-
-        department_collection = get_department_collection()
-
-        if input("既存の診療科をすべて削除しますか？ (y/n): ").lower() == 'y':
-            department_collection.delete_many({})
-            print("既存の診療科をすべて削除しました")
-
-        for dept in departments_data:
-            # 日付形式の変換
-            if 'created_at' in dept and isinstance(dept['created_at'], str):
-                dept['created_at'] = datetime.datetime.fromisoformat(dept['created_at'].replace('Z', '+00:00'))
-            if 'updated_at' in dept and isinstance(dept['updated_at'], str):
-                dept['updated_at'] = datetime.datetime.fromisoformat(dept['updated_at'].replace('Z', '+00:00'))
-
-            existing = department_collection.find_one({"name": dept["name"]})
-
-            if existing:
-                department_collection.update_one(
-                    {"name": dept["name"]},
-                    {"$set": dept}
-                )
-            else:
-                department_collection.insert_one(dept)
-
-        print(f"{len(departments_data)}件の診療科を正常に復元しました")
-        return True
-
-    except Exception as e:
-        print(f"診療科復元中にエラーが発生しました: {str(e)}")
-        return False
+    return restore_data(backup_file, 'departments')
 
 
 def list_backup_files():
@@ -272,7 +189,6 @@ if __name__ == "__main__":
         print(f"診療科: {dept_file}")
 
     elif action == "2":
-        # バックアップファイルの一覧を表示
         list_backup_files()
 
         print("\n--- プロンプトの復元 ---")
