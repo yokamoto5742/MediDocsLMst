@@ -1,18 +1,19 @@
-import streamlit as st
 import os
-from utils.env_loader import load_environment_variables
-from utils.gemini_api import generate_discharge_summary
-from utils.text_processor import format_discharge_summary, parse_discharge_summary
+import streamlit as st
+
 from utils.auth import login_ui, require_login, logout, get_current_user, password_change_ui, can_edit_prompts
 from utils.config import get_config, GEMINI_CREDENTIALS, REQUIRE_LOGIN
+from utils.env_loader import load_environment_variables
+from utils.gemini_api import generate_discharge_summary
 from utils.prompt_manager import (
     initialize_database, get_all_departments, get_all_prompts,
     create_or_update_prompt, delete_prompt, get_prompt_by_department,
     create_department, delete_department
 )
+from utils.text_processor import format_discharge_summary, parse_discharge_summary
 
 load_environment_variables()
-initialize_database()  # データベースの初期化
+initialize_database()
 
 st.set_page_config(
     page_title="退院時サマリ作成アプリ",
@@ -30,9 +31,8 @@ if "show_password_change" not in st.session_state:
 if "selected_department" not in st.session_state:
     st.session_state.selected_department = "default"
 if "current_page" not in st.session_state:
-    st.session_state.current_page = "main"  # main, prompt_edit, department_edit
+    st.session_state.current_page = "main"
 
-# 設定の読み込み
 require_login_setting = REQUIRE_LOGIN
 
 
@@ -45,23 +45,19 @@ def change_page(page):
 
 
 def department_management_ui():
-    """診療科管理UI"""
     st.title("診療科管理")
 
-    # 戻るボタン
     if st.button("メイン画面に戻る", key="back_to_main_from_dept"):
         change_page("main")
         st.rerun()
 
-    # 診療科一覧
-    st.subheader("診療科一覧")
     departments = get_all_departments()
     for dept in departments:
         col1, col2 = st.columns([4, 1])
         with col1:
             st.write(dept)
         with col2:
-            if dept not in ["内科", "外科", "整形外科", "小児科", "産婦人科", "その他"]:  # 基本診療科は削除不可
+            if dept not in ["内科"]:  # 内科は削除不可
                 if st.button("削除", key=f"delete_{dept}"):
                     success, message = delete_department(dept)
                     if success:
@@ -70,11 +66,10 @@ def department_management_ui():
                         st.error(message)
                     st.rerun()
 
-    # 診療科追加フォーム
-    st.subheader("診療科追加")
+
     with st.form("add_department_form"):
         new_dept = st.text_input("診療科名")
-        submit = st.form_submit_button("追加")
+        submit = st.form_submit_button("診療科を追加")
 
         if submit and new_dept:
             success, message = create_department(new_dept)
