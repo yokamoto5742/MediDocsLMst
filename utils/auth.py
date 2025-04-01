@@ -1,8 +1,11 @@
 import os
+
+import bcrypt
 import streamlit as st
 import bcrypt
 from pymongo import MongoClient
-from utils.config import get_config, MONGODB_URI
+
+from utils.config import get_config, MONGODB_URI, REQUIRE_LOGIN
 from utils.env_loader import load_environment_variables
 
 load_environment_variables()
@@ -17,7 +20,6 @@ def get_mongo_client():
 
 
 def get_users_collection():
-    """ユーザーコレクションを取得"""
     client = get_mongo_client()
     db_name = os.environ.get("MONGODB_DB_NAME", "discharge_summary_app")
     collection_name = os.environ.get("MONGODB_USERS_COLLECTION", "users")
@@ -27,20 +29,16 @@ def get_users_collection():
 
 
 def hash_password(password):
-    """パスワードをハッシュ化"""
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
 
 def verify_password(password, hashed_password):
-    """パスワードの検証"""
     return bcrypt.checkpw(password.encode('utf-8'), hashed_password)
 
 
 def register_user(username, password, is_admin=False):
-    """ユーザー登録"""
     users_collection = get_users_collection()
 
-    # ユーザー名の重複チェック
     if users_collection.find_one({"username": username}):
         return False, "このユーザー名は既に使用されています"
 
@@ -51,26 +49,20 @@ def register_user(username, password, is_admin=False):
         "is_admin": is_admin
     }
 
-    # データベースに保存
     users_collection.insert_one(user_data)
     return True, "ユーザー登録が完了しました"
 
 
 def change_password(username, current_password, new_password):
-    """パスワード変更"""
     users_collection = get_users_collection()
-
-    # ユーザー名でユーザーを検索
     user = users_collection.find_one({"username": username})
 
     if not user:
         return False, "ユーザーが見つかりません"
 
-    # 現在のパスワードを検証
     if not verify_password(current_password, user["password"]):
         return False, "現在のパスワードが正しくありません"
 
-    # 新しいパスワードをハッシュ化して更新
     hashed_new_password = hash_password(new_password)
     users_collection.update_one(
         {"username": username},
@@ -81,16 +73,12 @@ def change_password(username, current_password, new_password):
 
 
 def authenticate_user(username, password):
-    """ユーザー認証"""
     users_collection = get_users_collection()
-
-    # ユーザー名でユーザーを検索
     user = users_collection.find_one({"username": username})
 
     if not user:
         return False, "ユーザー名またはパスワードが正しくありません"
 
-    # パスワードの検証
     if verify_password(password, user["password"]):
         # セッションに保存するユーザーデータ
         user_data = {
@@ -103,10 +91,8 @@ def authenticate_user(username, password):
 
 
 def login_ui():
-    """ログインUI"""
     st.title("退院時サマリ作成アプリ - ログイン")
 
-    # セッション状態の初期化
     if "user" not in st.session_state:
         st.session_state.user = None
 
@@ -128,9 +114,7 @@ def login_ui():
                 success, result = authenticate_user(username, password)
                 if success:
                     st.session_state.user = result
-                    st.success(f"ようこそ、{username}さん！")
                     st.rerun()
-                    return True
                 else:
                     st.error(result)
                     return False
@@ -161,7 +145,7 @@ def login_ui():
                 if success:
                     st.success(message)
                     if is_first_user:
-                        st.info("あなたは最初のユーザーなので、管理者権限が付与されました")
+                        st.info("あなたに管理者権限が付与されました")
                     return False
                 else:
                     st.error(message)
@@ -174,7 +158,6 @@ def login_ui():
 
 
 def logout():
-    """ログアウト処理"""
     if "user" in st.session_state:
         st.session_state.user = None
         return True
@@ -190,7 +173,6 @@ def require_login():
 
 
 def get_current_user():
-    """現在のログインユーザーを取得"""
     if "user" in st.session_state:
         return st.session_state.user
     return None
@@ -205,7 +187,6 @@ def is_admin():
 
 
 def password_change_ui():
-    """パスワード変更UI"""
     st.subheader("パスワード変更")
 
     user = get_current_user()
@@ -237,9 +218,6 @@ def password_change_ui():
 
 
 def can_edit_prompts():
-    """プロンプト編集権限があるかどうかを判定"""
-    from utils.config import REQUIRE_LOGIN
-
     # ログイン不要モードの場合は誰でも編集可能
     if not REQUIRE_LOGIN:
         return True
