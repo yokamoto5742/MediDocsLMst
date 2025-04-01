@@ -81,15 +81,12 @@ def department_management_ui():
 
 
 def prompt_management_ui():
-    """プロンプト管理UI"""
     st.title("プロンプト管理")
 
-    # 戻るボタン
     if st.button("メイン画面に戻る", key="back_to_main"):
         change_page("main")
         st.rerun()
 
-    # 診療科選択
     departments = ["default"] + get_all_departments()
     selected_dept = st.selectbox(
         "診療科を選択",
@@ -97,17 +94,15 @@ def prompt_management_ui():
         format_func=lambda x: "全科共通" if x == "default" else x
     )
 
-    # 選択された診療科のプロンプトを取得
     prompt_data = get_prompt_by_department(selected_dept)
 
-    # プロンプト編集フォーム
     with st.form("edit_prompt_form"):
         prompt_name = st.text_input(
             "プロンプト名",
             value=prompt_data.get("name", "") if prompt_data else "退院時サマリ"
         )
         prompt_content = st.text_area(
-            "プロンプト内容",
+            "内容",
             value=prompt_data.get("content", "") if prompt_data else "",
             height=300
         )
@@ -136,24 +131,21 @@ def prompt_management_ui():
             else:
                 st.error(message)
 
-
-# セッション状態の初期化
 if "input_text" not in st.session_state:
     st.session_state.input_text = ""
 
+
 def clear_input_and_output():
-    """入力と出力をクリアする関数"""
-    # 出力をクリア
+    if "input_text" in st.session_state:
+        st.session_state.input_text = ""
     if "discharge_summary" in st.session_state:
         st.session_state.discharge_summary = ""
     if "parsed_summary" in st.session_state:
         st.session_state.parsed_summary = {}
-    # 入力をクリア - 直接キーを指定
-    if "input_text" in st.session_state:
-        st.session_state.input_text = ""
-    # 強制的にセッション状態をクリア
+
+    # セッション状態を強制的にクリア
     for key in list(st.session_state.keys()):
-        if key.startswith("input_text"):  # input_textに関連するキーをすべてクリア
+        if key.startswith("input_text"):
             st.session_state[key] = ""
 
 
@@ -162,7 +154,6 @@ def main_app():
     if user:
         st.sidebar.success(f"ログイン中: {user['username']}")
 
-        # パスワード変更ボタンとログアウトボタンを表示
         col1, col2 = st.sidebar.columns(2)
         with col1:
             if st.button("パスワード変更", key="show_password_change_button"):
@@ -172,7 +163,6 @@ def main_app():
                 logout()
                 st.rerun()
 
-        # パスワード変更UIの表示
         if st.session_state.show_password_change:
             with st.sidebar:
                 password_change_ui()
@@ -180,7 +170,6 @@ def main_app():
                     st.session_state.show_password_change = False
                     st.rerun()
 
-    # 診療科選択
     departments = ["default"] + get_all_departments()
     selected_dept = st.sidebar.selectbox(
         "診療科",
@@ -190,7 +179,6 @@ def main_app():
         key="department_selector"
     )
 
-    # 選択された診療科を保存
     st.session_state.selected_department = selected_dept
 
     if st.session_state.current_page == "prompt_edit":
@@ -203,7 +191,6 @@ def main_app():
     st.sidebar.markdown("・入力および出力テキストは保存されません")
     st.sidebar.markdown("・出力内容は必ず確認してください")
 
-    # 管理メニュー（プロンプト編集権限がある場合のみ表示）
     if can_edit_prompts():
         if st.sidebar.button("診療科管理", key="department_management"):
             change_page("department_edit")
@@ -230,7 +217,6 @@ def main_app():
 
     col1, col2 = st.columns(2)
 
-    # 実行ボタン
     with col1:
         if st.button("退院時サマリ作成", type="primary"):
             if not GEMINI_CREDENTIALS:
@@ -243,14 +229,12 @@ def main_app():
 
             try:
                 with st.spinner("退院時サマリを作成中..."):
-                    # 選択された診療科のプロンプトを使用
                     discharge_summary = generate_discharge_summary(input_text, st.session_state.selected_department)
 
                     discharge_summary = format_discharge_summary(discharge_summary)
 
                     st.session_state.discharge_summary = discharge_summary
 
-                    # 退院時サマリを項目ごとに分割
                     parsed_summary = parse_discharge_summary(discharge_summary)
                     st.session_state.parsed_summary = parsed_summary
 
@@ -262,9 +246,7 @@ def main_app():
             pass
 
     if st.session_state.discharge_summary:
-        # 退院時サマリの表示
         if st.session_state.parsed_summary:
-            # タブを作成
             tabs = st.tabs([
                 "全文", "入院期間", "現病歴", "入院時検査",
                 "入院中の治療経過", "退院申し送り", "禁忌/アレルギー"
