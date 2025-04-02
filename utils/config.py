@@ -1,5 +1,5 @@
-import os
 import configparser
+import os
 from pathlib import Path
 
 import google.generativeai as genai
@@ -32,13 +32,11 @@ REQUIRE_LOGIN = os.environ.get("REQUIRE_LOGIN", "True").lower() in ("true", "1",
 
 
 def get_mongodb_connection():
-    """MongoDBへの接続を取得する関数"""
     client = MongoClient(MONGODB_URI)
     db = client[MONGODB_DB_NAME]
     return db
 
 
 def get_gemini_client():
-    """Gemini APIクライアントを取得する関数"""
     genai.configure(api_key=GEMINI_CREDENTIALS)
     return genai
