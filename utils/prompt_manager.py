@@ -7,20 +7,19 @@ from utils.config import get_config, MONGODB_URI, get_mongodb_connection
 from utils.env_loader import load_environment_variables
 
 DEFAULT_DEPARTMENTS = [
-     "内科", "消化器内科", "整形外科", "眼科",
+    "内科", "消化器内科", "整形外科", "眼科",
 ]
+
 
 def get_prompt_collection():
     db = get_mongodb_connection()
     collection_name = os.environ.get("MONGODB_PROMPTS_COLLECTION", "prompts")
-
     return db[collection_name]
 
 
 def get_department_collection():
     db = get_mongodb_connection()
     collection_name = os.environ.get("MONGODB_DEPARTMENTS_COLLECTION", "departments")
-
     return db[collection_name]
 
 
@@ -29,7 +28,6 @@ def get_current_datetime():
 
 
 def insert_document(collection, document):
-    """ドキュメントにタイムスタンプを追加して挿入するヘルパー関数"""
     now = get_current_datetime()
     document.update({
         "created_at": now,
@@ -38,28 +36,18 @@ def insert_document(collection, document):
     return collection.insert_one(document)
 
 
-def initialize_default_prompt():
-    prompt_collection = get_prompt_collection()
-
-    default_prompt = prompt_collection.find_one({"department": "default", "is_default": True})
-
-    if not default_prompt:
-        config = get_config()
-        default_prompt_content = config['PROMPTS']['discharge_summary']
-
-        insert_document(prompt_collection, {
-            "department": "default",
-            "name": "退院時サマリ",
-            "content": default_prompt_content,
-            "is_default": True
-        })
+def update_document(collection, query, update_data):
+    now = get_current_datetime()
+    update_data.update({"updated_at": now})
+    return collection.update_one(
+        query,
+        {"$set": update_data}
+    )
 
 
 def initialize_departments():
     department_collection = get_department_collection()
-
     existing_count = department_collection.count_documents({})
-
     if existing_count == 0:
         for dept in DEFAULT_DEPARTMENTS:
             insert_document(department_collection, {"name": dept})
@@ -102,6 +90,23 @@ def delete_department(name):
     return True, "診療科を削除しました"
 
 
+def initialize_default_prompt():
+    prompt_collection = get_prompt_collection()
+
+    default_prompt = prompt_collection.find_one({"department": "default", "is_default": True})
+
+    if not default_prompt:
+        config = get_config()
+        default_prompt_content = config['PROMPTS']['discharge_summary']
+
+        insert_document(prompt_collection, {
+            "department": "default",
+            "name": "退院時サマリ",
+            "content": default_prompt_content,
+            "is_default": True
+        })
+
+
 def get_prompt_by_department(department="default"):
     """指定された診療科のプロンプトを取得"""
     prompt_collection = get_prompt_collection()
@@ -109,23 +114,13 @@ def get_prompt_by_department(department="default"):
 
     if not prompt:
         prompt = prompt_collection.find_one({"department": "default", "is_default": True})
-    
+
     return prompt
 
 
 def get_all_prompts():
     prompt_collection = get_prompt_collection()
     return list(prompt_collection.find().sort("department"))
-
-
-def update_document(collection, query, update_data):
-    now = get_current_datetime()
-    update_data.update({"updated_at": now})
-
-    return collection.update_one(
-        query,
-        {"$set": update_data}
-    )
 
 
 def create_or_update_prompt(department, name, content):
@@ -168,6 +163,7 @@ def delete_prompt(department):
         return False, "プロンプトが見つかりません"
 
     return True, "プロンプトを削除しました"
+
 
 def initialize_database():
     initialize_default_prompt()
