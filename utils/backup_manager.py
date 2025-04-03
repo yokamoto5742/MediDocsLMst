@@ -78,6 +78,8 @@ def restore_data(backup_file, data_type):
         print(f"エラー: バックアップファイルが見つかりません: {backup_file}")
         return False
 
+    success_message = "データ"
+
     try:
         with open(backup_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
