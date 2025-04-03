@@ -19,7 +19,7 @@ require_login_setting = REQUIRE_LOGIN
 
 st.set_page_config(
     page_title="退院時サマリ作成アプリ",
-    page_icon="🏥",
+    page_icon="📋",
     layout="wide"
 )
 
