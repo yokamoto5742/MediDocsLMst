@@ -1,8 +1,8 @@
 import os
 import streamlit as st
 
-from utils.auth import login_ui, require_login, logout, get_current_user, password_change_ui, can_edit_prompts
-from utils.config import get_config, GEMINI_CREDENTIALS, REQUIRE_LOGIN
+from utils.auth import login_ui, require_login, logout, get_current_user, password_change_ui, can_edit_prompts, check_ip_access
+from utils.config import get_config, GEMINI_CREDENTIALS, REQUIRE_LOGIN, IP_CHECK_ENABLED, IP_WHITELIST
 from utils.env_loader import load_environment_variables
 from utils.gemini_api import generate_discharge_summary
 from utils.prompt_manager import (
@@ -266,6 +266,10 @@ def main_app():
 
 
 def main():
+    if IP_CHECK_ENABLED:
+        if not check_ip_access(IP_WHITELIST):
+            st.stop()
+
     if require_login_setting:
         if require_login():
             main_app()

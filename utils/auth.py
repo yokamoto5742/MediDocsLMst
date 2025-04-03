@@ -1,11 +1,12 @@
 import os
+import ipaddress
 
 import bcrypt
 import streamlit as st
 import bcrypt
 from pymongo import MongoClient
 
-from utils.config import get_config, MONGODB_URI, REQUIRE_LOGIN
+from utils.config import get_config, MONGODB_URI, REQUIRE_LOGIN, IP_WHITELIST, IP_CHECK_ENABLED
 from utils.env_loader import load_environment_variables
 
 load_environment_variables()
@@ -224,3 +225,45 @@ def can_edit_prompts():
 
     # ログイン必須モードの場合は管理者のみ編集可能
     return is_admin()
+
+
+def get_client_ip():
+    """クライアントのIPアドレスを取得する"""
+    ip = os.environ.get("HTTP_X_FORWARDED_FOR") or os.environ.get("REMOTE_ADDR")
+
+    # ローカル開発環境の場合はlocalhostとして扱う
+    if not ip:
+        ip = "127.0.0.1"
+
+    return ip
+
+
+def is_ip_allowed(ip, whitelist_str):
+    """IPアドレスがホワイトリストに含まれているかをチェック"""
+    if not whitelist_str.strip():
+        return True
+
+    whitelist = [addr.strip() for addr in whitelist_str.split(",")]
+
+    try:
+        client_ip = ipaddress.ip_address(ip)
+        for item in whitelist:
+            if "/" in item:  # CIDR表記
+                if client_ip in ipaddress.ip_network(item):
+                    return True
+            else:  # 単一のIPアドレス
+                if ip == item:
+                    return True
+        return False
+    except ValueError:
+        # IPアドレスの解析エラー
+        return False
+
+
+def check_ip_access(whitelist_str):
+    """IPアドレスのアクセス制限をチェック"""
+    client_ip = get_client_ip()
+    if not is_ip_allowed(client_ip, whitelist_str):
+        st.error(f"このIPアドレス（{client_ip}）からはアクセスできません。")
+        return False
+    return True

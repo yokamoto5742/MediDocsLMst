@@ -27,8 +27,10 @@ MONGODB_DEPARTMENTS_COLLECTION = os.environ.get("MONGODB_DEPARTMENTS_COLLECTION"
 GEMINI_CREDENTIALS = os.environ.get("GEMINI_CREDENTIALS")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL")
 
-# アプリの認証設定
 REQUIRE_LOGIN = os.environ.get("REQUIRE_LOGIN", "True").lower() in ("true", "1", "yes")
+
+IP_WHITELIST = os.environ.get("IP_WHITELIST", "")
+IP_CHECK_ENABLED = os.environ.get("IP_CHECK_ENABLED", "False").lower() in ("true", "1", "yes")
 
 
 def get_mongodb_connection():
