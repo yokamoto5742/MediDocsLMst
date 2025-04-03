@@ -1,113 +1,113 @@
 # 退院時サマリ作成アプリ
 
 ## 概要
-このアプリケーションは、医療機関における退院時サマリを効率的に作成するためのWebツールです。Google Gemini AIを活用して、カルテ情報から構造化された退院時サマリを自動生成します。Streamlitベースのインターフェースで、医療従事者が簡単に利用できます。
+
+このアプリケーションは、医療従事者向けの退院時サマリ自動生成ツールです。カルテ情報を入力すると、Google Gemini APIを利用してAIが退院時サマリを自動的に生成します。
 
 ## 主な機能
-- 📝 カルテ情報から退院時サマリの自動生成
-- 🔍 生成されたサマリの項目別表示（入院期間、現病歴、検査結果など）
-- 🔐 ユーザー認証システム（ログイン、新規登録、パスワード変更）
-- 👥 管理者権限の設定（最初のユーザーに自動付与）
-- 🌐 Webブラウザからのアクセス
 
-## インストール手順
+- カルテ情報からAIを使用した退院時サマリの自動生成
+- 診療科ごとにカスタマイズ可能なプロンプト設定
+- ユーザー認証システム（管理者権限を含む）（オプション）
+- セクションごとに整理されたサマリ表示
+- IPアドレスによるアクセス制限（オプション）
+- データのバックアップと復元機能
 
-### 前提条件
+## システム要件
+
 - Python 3.11以上
-- MongoDB アカウント
-- Google Gemini API キー
+- MongoDB
+- Google Gemini API アクセス
 
-### セットアップ
+## インストール方法
+
 1. リポジトリをクローン
-   ```bash
-   git clone https://github.com/yourusername/discharge-summary-app.git
-   cd discharge-summary-app
-   ```
 
-2. 仮想環境を作成して有効化（推奨）
-   ```bash
-   python -m venv venv
-   # Windows
-   venv\Scripts\activate
-   # macOS/Linux
-   source venv/bin/activate
-   ```
+```bash
+git clone [リポジトリURL]
+cd discharge-summary-app
+```
 
-3. 必要なパッケージをインストール
-   ```bash
-   pip install -r requirements.txt
-   ```
+2. 必要なパッケージをインストール
 
-4. `.env`ファイルを作成して環境変数を設定
-   ```
-   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/
-   MONGODB_DB_NAME=discharge_summary_app
-   MONGODB_USERS_COLLECTION=users
-   GEMINI_CREDENTIALS=your_gemini_api_key
-   ```
+```bash
+pip install -r requirements.txt
+```
 
-## 使用方法
+3. 環境設定ファイルの作成
 
-### アプリの起動
+`.env`ファイルをプロジェクトのルートディレクトリに作成し、以下の情報を設定します：
+
+```
+MONGODB_URI=mongodb+srv://[username]:[password]@[host]/[database]?retryWrites=true&w=majority
+MONGODB_DB_NAME=discharge_summary_app
+MONGODB_USERS_COLLECTION=users
+MONGODB_PROMPTS_COLLECTION=prompts
+MONGODB_DEPARTMENTS_COLLECTION=departments
+
+GEMINI_CREDENTIALS=[your_gemini_api_key]
+GEMINI_MODEL=[gemini_model_name]
+
+REQUIRE_LOGIN=True
+IP_CHECK_ENABLED=True
+IP_WHITELIST=127.0.0.1,…
+```
+
+## 起動方法
+
 ```bash
 streamlit run app.py
 ```
 
-### 初回利用時
-1. 新規ユーザー登録（最初のユーザーには管理者権限が自動付与されます）
-2. ログイン
-3. カルテ情報をテキストエリアに貼り付け
-4. 「退院時サマリ作成」ボタンをクリック
-5. 生成されたサマリを確認（全文または項目別に表示）
+## 使用方法
 
-## 設定
-`config.ini`ファイルで以下の設定が可能です：
+### 一般ユーザー
 
-```ini
-[AUTH]
-require_login = true/false  # ログイン要否の設定
+1. アプリにアクセスし、ユーザー登録またはログインを行います
+2. カルテ情報を入力欄に貼り付けます
+3. 「退院時サマリ作成」ボタンをクリックします
+4. 生成されたサマリを各タブで確認します
+5. 必要に応じてテキストをコピーして使用します
 
-[GEMINI]
-model = gemini-2.0-pro-exp-02-05  # 使用するGeminiモデル
+### 管理者（最初に登録したユーザーに自動付与）
 
-[PROMPTS]
-discharge_summary = プロンプトテンプレート  # AIへの指示テンプレート
+管理者は以下の追加機能を利用できます：
+
+1. **診療科管理**：診療科の追加・削除
+2. **プロンプト管理**：診療科ごとのAIプロンプトをカスタマイズ
+
+## データバックアップ
+
+バックアップユーティリティを使用してデータをバックアップおよび復元できます：
+
+```bash
+python -m utils.backup_manager
 ```
 
-## ファイル構造
-- `app.py` - メインアプリケーション（Streamlit UI）
-- `config.ini` - アプリケーション設定
-- `requirements.txt` - 依存パッケージリスト
-- `utils/` - ユーティリティモジュール
-  - `auth.py` - 認証関連機能
-  - `config.py` - 設定読み込み
-  - `env_loader.py` - 環境変数読み込み
-  - `gemini_api.py` - Gemini API連携
-  - `text_processor.py` - テキスト処理機能
+このツールは以下の操作をサポートしています：
+- プロンプトと診療科データのバックアップ作成
+- バックアップからのデータ復元
+- バックアップファイルの一覧表示
 
-## 技術スタック
+## 注意事項
+
+- 生成されたサマリの内容は必ず確認してください
+- 入力および出力テキストはサーバーに保存されません
+- IP制限機能を有効にする場合は、正しいIPアドレスまたはCIDR表記を設定してください
+
+## 技術情報
+
 - **フロントエンド**: Streamlit
-- **バックエンド**: Python
-- **データベース**: MongoDB Atlas
-- **AI**: Google Gemini
-- **認証**: bcrypt（パスワードハッシュ化）
-
-## 環境変数
-アプリケーションには以下の環境変数が必要です：
-
-| 環境変数 | 説明 | 必須 |
-|----------|------|------|
-| MONGODB_URI | MongoDB接続URI | はい |
-| MONGODB_DB_NAME | データベース名 | いいえ（デフォルト: discharge_summary_app） |
-| MONGODB_USERS_COLLECTION | ユーザーコレクション名 | いいえ（デフォルト: users） |
-| GEMINI_CREDENTIALS | Gemini APIキー | はい |
-
-## セキュリティ情報
-- ユーザーパスワードはbcryptでハッシュ化されています
-- 入力および出力テキストはデータベースに保存されません
-- 環境変数で機密情報を管理しています
+- **データベース**: MongoDB
+- **認証**: bcrypt
+- **生成AIモデル**: Google Gemini API
 
 ## トラブルシューティング
-- MongoDB接続エラー: MONGODB_URI環境変数が正しく設定されているか確認してください
-- Gemini API認証エラー: GEMINI_CREDENTIALS環境変数が正しく設定されているか確認してください
-- パッケージのインストールエラー: Python環境が正しく設定されているか確認してください
+
+- **API接続エラー**: Gemini APIのクレデンシャルと環境変数の設定を確認してください
+- **データベース接続エラー**: MongoDB URIと接続情報を確認してください
+- **アクセス制限**: IP制限が有効な場合、許可されたIPからアクセスしていることを確認してください
+
+## ライセンス
+
+LICENSEファイルを参照してください
