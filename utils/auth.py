@@ -26,8 +26,8 @@ def get_mongo_client():
             socketTimeoutMS=30000,
             ssl=True
         )
-        client.admin.command('ping')
         return client
+
     except Exception as e:
         st.error(f"MongoDBへの接続に失敗しました: {str(e)}")
         raise ConnectionError(f"MongoDBへの接続エラー: {str(e)}")
