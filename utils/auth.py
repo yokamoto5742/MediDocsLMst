@@ -12,12 +12,25 @@ from utils.env_loader import load_environment_variables
 load_environment_variables()
 
 
+# utils/auth.py のMongoDBクライアント取得部分を修正
 def get_mongo_client():
     """MongoDB Atlasに接続するクライアントを取得"""
     if not MONGODB_URI:
         raise ValueError("MongoDB接続情報が設定されていません。環境変数または設定ファイルを確認してください。")
 
-    return MongoClient(MONGODB_URI)
+    try:
+        client = MongoClient(
+            MONGODB_URI,
+            serverSelectionTimeoutMS=5000,
+            connectTimeoutMS=5000,
+            socketTimeoutMS=30000,
+            ssl=True
+        )
+        client.admin.command('ping')
+        return client
+    except Exception as e:
+        st.error(f"MongoDBへの接続に失敗しました: {str(e)}")
+        raise ConnectionError(f"MongoDBへの接続エラー: {str(e)}")
 
 
 def get_users_collection():
