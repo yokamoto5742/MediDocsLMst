@@ -33,12 +33,6 @@ IP_WHITELIST = os.environ.get("IP_WHITELIST", "")
 IP_CHECK_ENABLED = os.environ.get("IP_CHECK_ENABLED", "False").lower() in ("true", "1", "yes")
 
 
-def get_mongodb_connection():
-    client = MongoClient(MONGODB_URI)
-    db = client[MONGODB_DB_NAME]
-    return db
-
-
 def get_gemini_client():
     genai.configure(api_key=GEMINI_CREDENTIALS)
     return genai

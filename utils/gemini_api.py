@@ -4,7 +4,9 @@ import os
 import google.generativeai as genai
 
 from utils.config import get_config, GEMINI_CREDENTIALS, GEMINI_MODEL
+from utils.constants import MESSAGES
 from utils.prompt_manager import get_prompt_by_department
+from utils.exceptions import APIError
 
 
 def initialize_gemini():
@@ -13,10 +15,10 @@ def initialize_gemini():
             genai.configure(api_key=GEMINI_CREDENTIALS)
             return True
         else:
-            raise ValueError("Gemini API認証情報が設定されていません。")
+            raise APIError(MESSAGES["API_CREDENTIALS_MISSING"])
 
     except Exception as e:
-        raise Exception(f"Gemini API初期化エラー: {str(e)}")
+        raise APIError(f"Gemini API初期化エラー: {str(e)}")
 
 
 def create_discharge_summary_prompt(medical_text, department="default"):
@@ -50,7 +52,7 @@ def generate_discharge_summary(medical_text, department="default"):
 
         return summary_text
 
+    except APIError as e:
+        raise e
     except Exception as e:
-        error_msg = f"Gemini APIでエラーが発生しました: {str(e)}"
-        print(error_msg)
-        raise Exception(error_msg)
+        raise APIError(f"Gemini APIでエラーが発生しました: {str(e)}")

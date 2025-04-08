@@ -4,11 +4,16 @@ from unittest.mock import patch, MagicMock
 import ipaddress
 
 from utils.auth import (
-    get_mongo_client, get_users_collection, hash_password, verify_password,
+    get_users_collection, hash_password, verify_password,
     register_user, authenticate_user, change_password, logout,
     get_current_user, is_admin, can_edit_prompts,
     get_client_ip, is_ip_allowed, check_ip_access
 )
+from utils.db import DatabaseManager
+
+
+def get_mongo_client():
+    return DatabaseManager.get_instance().get_client()
 
 
 class SessionState(dict):

@@ -6,39 +6,23 @@ import streamlit as st
 from pymongo import MongoClient
 
 from utils.config import get_config, MONGODB_URI, REQUIRE_LOGIN, IP_WHITELIST, IP_CHECK_ENABLED
+from utils.constants import MESSAGES
+from utils.db import DatabaseManager
 from utils.env_loader import load_environment_variables
+from utils.error_handlers import handle_error
+from utils.exceptions import AuthError, DatabaseError
 
 load_environment_variables()
 
 
-# utils/auth.py のMongoDBクライアント取得部分を修正
-def get_mongo_client():
-    """MongoDB Atlasに接続するクライアントを取得"""
-    if not MONGODB_URI:
-        raise ValueError("MongoDB接続情報が設定されていません。環境変数または設定ファイルを確認してください。")
-
-    try:
-        client = MongoClient(
-            MONGODB_URI,
-            serverSelectionTimeoutMS=5000,
-            connectTimeoutMS=5000,
-            socketTimeoutMS=30000,
-            ssl=True
-        )
-        return client
-
-    except Exception as e:
-        st.error(f"MongoDBへの接続に失敗しました: {str(e)}")
-        raise ConnectionError(f"MongoDBへの接続エラー: {str(e)}")
-
-
 def get_users_collection():
-    client = get_mongo_client()
-    db_name = os.environ.get("MONGODB_DB_NAME", "discharge_summary_app")
-    collection_name = os.environ.get("MONGODB_USERS_COLLECTION", "users")
-
-    db = client[db_name]
-    return db[collection_name]
+    """ユーザーコレクションを取得"""
+    try:
+        db_manager = DatabaseManager.get_instance()
+        collection_name = os.environ.get("MONGODB_USERS_COLLECTION", "users")
+        return db_manager.get_collection(collection_name)
+    except Exception as e:
+        raise DatabaseError(f"ユーザーコレクションの取得に失敗しました: {str(e)}")
 
 
 def hash_password(password):
@@ -50,59 +34,75 @@ def verify_password(password, hashed_password):
 
 
 def register_user(username, password, is_admin=False):
-    users_collection = get_users_collection()
+    try:
+        users_collection = get_users_collection()
 
-    if users_collection.find_one({"username": username}):
-        return False, "このユーザー名は既に使用されています"
+        if users_collection.find_one({"username": username}):
+            raise AuthError(MESSAGES["USER_EXISTS"])
 
-    # 新規ユーザー情報の作成
-    user_data = {
-        "username": username,
-        "password": hash_password(password),
-        "is_admin": is_admin
-    }
+        # 新規ユーザー情報の作成
+        user_data = {
+            "username": username,
+            "password": hash_password(password),
+            "is_admin": is_admin
+        }
 
-    users_collection.insert_one(user_data)
-    return True, "ユーザー登録が完了しました"
+        users_collection.insert_one(user_data)
+        return True, MESSAGES["REGISTRATION_SUCCESS"]
+    except AuthError as e:
+        return False, str(e)
+    except Exception as e:
+        raise DatabaseError(f"ユーザー登録に失敗しました: {str(e)}")
 
 
 def change_password(username, current_password, new_password):
-    users_collection = get_users_collection()
-    user = users_collection.find_one({"username": username})
+    try:
+        users_collection = get_users_collection()
+        user = users_collection.find_one({"username": username})
 
-    if not user:
-        return False, "ユーザーが見つかりません"
+        if not user:
+            raise AuthError("ユーザーが見つかりません")
 
-    if not verify_password(current_password, user["password"]):
-        return False, "現在のパスワードが正しくありません"
+        if not verify_password(current_password, user["password"]):
+            raise AuthError("現在のパスワードが正しくありません")
 
-    hashed_new_password = hash_password(new_password)
-    users_collection.update_one(
-        {"username": username},
-        {"$set": {"password": hashed_new_password}}
-    )
+        hashed_new_password = hash_password(new_password)
+        users_collection.update_one(
+            {"username": username},
+            {"$set": {"password": hashed_new_password}}
+        )
 
-    return True, "パスワードが正常に変更されました"
+        return True, "パスワードが正常に変更されました"
+    except AuthError as e:
+        return False, str(e)
+    except Exception as e:
+        raise DatabaseError(f"パスワード変更に失敗しました: {str(e)}")
 
 
 def authenticate_user(username, password):
-    users_collection = get_users_collection()
-    user = users_collection.find_one({"username": username})
+    try:
+        users_collection = get_users_collection()
+        user = users_collection.find_one({"username": username})
 
-    if not user:
-        return False, "ユーザー名またはパスワードが正しくありません"
+        if not user:
+            raise AuthError("ユーザー名またはパスワードが正しくありません")
 
-    if verify_password(password, user["password"]):
-        # セッションに保存するユーザーデータ
-        user_data = {
-            "username": user["username"],
-            "is_admin": user.get("is_admin", False)
-        }
-        return True, user_data
+        if verify_password(password, user["password"]):
+            # セッションに保存するユーザーデータ
+            user_data = {
+                "username": user["username"],
+                "is_admin": user.get("is_admin", False)
+            }
+            return True, user_data
 
-    return False, "ユーザー名またはパスワードが正しくありません"
+        raise AuthError("ユーザー名またはパスワードが正しくありません")
+    except AuthError as e:
+        return False, str(e)
+    except Exception as e:
+        raise DatabaseError(f"認証中にエラーが発生しました: {str(e)}")
 
 
+@handle_error
 def login_ui():
     st.title("退院時サマリ作成アプリ - ログイン")
 
@@ -123,16 +123,12 @@ def login_ui():
                 st.error("ユーザー名とパスワードを入力してください")
                 return False
 
-            try:
-                success, result = authenticate_user(username, password)
-                if success:
-                    st.session_state.user = result
-                    st.rerun()
-                else:
-                    st.error(result)
-                    return False
-            except Exception as e:
-                st.error(f"認証エラー: {str(e)}")
+            success, result = authenticate_user(username, password)
+            if success:
+                st.session_state.user = result
+                st.rerun()
+            else:
+                st.error(result)
                 return False
 
     with register_tab:
@@ -149,22 +145,18 @@ def login_ui():
                 st.error("パスワードが一致しません")
                 return False
 
-            try:
-                # 最初のユーザーを管理者として登録
-                users_collection = get_users_collection()
-                is_first_user = users_collection.count_documents({}) == 0
+            # 最初のユーザーを管理者として登録
+            users_collection = get_users_collection()
+            is_first_user = users_collection.count_documents({}) == 0
 
-                success, message = register_user(new_username, new_password, is_admin=is_first_user)
-                if success:
-                    st.success(message)
-                    if is_first_user:
-                        st.info("あなたに管理者権限が付与されました")
-                    return False
-                else:
-                    st.error(message)
-                    return False
-            except Exception as e:
-                st.error(f"登録エラー: {str(e)}")
+            success, message = register_user(new_username, new_password, is_admin=is_first_user)
+            if success:
+                st.success(message)
+                if is_first_user:
+                    st.info("あなたに管理者権限が付与されました")
+                return False
+            else:
+                st.error(message)
                 return False
 
     return False
@@ -199,13 +191,13 @@ def is_admin():
     return False
 
 
+@handle_error
 def password_change_ui():
     st.subheader("パスワード変更")
 
     user = get_current_user()
     if not user:
-        st.error("ログインが必要です")
-        return
+        raise AuthError("ログインが必要です")
 
     current_password = st.text_input("現在のパスワード", type="password", key="current_password")
     new_password = st.text_input("新しいパスワード", type="password", key="new_password")
@@ -220,14 +212,11 @@ def password_change_ui():
             st.error("新しいパスワードが一致しません")
             return
 
-        try:
-            success, message = change_password(user["username"], current_password, new_password)
-            if success:
-                st.success(message)
-            else:
-                st.error(message)
-        except Exception as e:
-            st.error(f"パスワード変更エラー: {str(e)}")
+        success, message = change_password(user["username"], current_password, new_password)
+        if success:
+            st.success(message)
+        else:
+            st.error(message)
 
 
 def can_edit_prompts():

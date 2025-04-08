@@ -4,8 +4,13 @@ import os
 from pathlib import Path
 
 from utils.env_loader import load_environment_variables
-from utils.config import get_mongodb_connection, get_config
+from utils.config import get_config
+from utils.db import DatabaseManager
 from utils.prompt_manager import get_all_departments, get_all_prompts, get_department_collection, get_prompt_collection
+
+
+def get_mongodb_connection():
+    return DatabaseManager.get_instance().get_client()
 
 
 def get_backup_dir(backup_type):

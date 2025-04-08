@@ -3,6 +3,7 @@ import streamlit as st
 
 from utils.auth import login_ui, require_login, logout, get_current_user, password_change_ui, can_edit_prompts, check_ip_access
 from utils.config import get_config, GEMINI_CREDENTIALS, REQUIRE_LOGIN, IP_CHECK_ENABLED, IP_WHITELIST
+from utils.constants import MESSAGES
 from utils.env_loader import load_environment_variables
 from utils.gemini_api import generate_discharge_summary
 from utils.prompt_manager import (
@@ -11,6 +12,8 @@ from utils.prompt_manager import (
     create_department, delete_department
 )
 from utils.text_processor import format_discharge_summary, parse_discharge_summary
+from utils.error_handlers import handle_error
+from utils.exceptions import AppError, AuthError, APIError, DatabaseError
 
 load_environment_variables()
 initialize_database()
@@ -23,7 +26,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# セッション状態の初期化
 if "discharge_summary" not in st.session_state:
     st.session_state.discharge_summary = ""
 if "parsed_summary" not in st.session_state:
@@ -34,8 +36,8 @@ if "selected_department" not in st.session_state:
     st.session_state.selected_department = "default"
 if "current_page" not in st.session_state:
     st.session_state.current_page = "main"
-
-
+if "success_message" not in st.session_state:
+    st.session_state.success_message = None
 
 
 def toggle_password_change():
@@ -46,9 +48,8 @@ def change_page(page):
     st.session_state.current_page = page
 
 
+@handle_error
 def department_management_ui():
-    st.title("診療科管理")
-
     if st.button("メイン画面に戻る", key="back_to_main_from_dept"):
         change_page("main")
         st.rerun()
@@ -59,15 +60,14 @@ def department_management_ui():
         with col1:
             st.write(dept)
         with col2:
-            if dept not in ["内科"]:  # 内科は削除不可
+            if dept not in ["内科"]:
                 if st.button("削除", key=f"delete_{dept}"):
                     success, message = delete_department(dept)
                     if success:
                         st.success(message)
                     else:
-                        st.error(message)
+                        raise AppError(message)
                     st.rerun()
-
 
     with st.form("add_department_form"):
         new_dept = st.text_input("診療科名")
@@ -78,63 +78,68 @@ def department_management_ui():
             if success:
                 st.success(message)
             else:
-                st.error(message)
+                raise AppError(message)
             st.rerun()
 
 
+@handle_error
 def prompt_management_ui():
-    st.title("プロンプト管理")
+    if st.session_state.success_message:
+        st.success(st.session_state.success_message)
+        st.session_state.success_message = None
 
     if st.button("メイン画面に戻る", key="back_to_main"):
         change_page("main")
         st.rerun()
 
+    if "selected_dept_for_prompt" not in st.session_state:
+        st.session_state.selected_dept_for_prompt = "default"
+
     departments = ["default"] + get_all_departments()
     selected_dept = st.selectbox(
         "診療科を選択",
         departments,
-        format_func=lambda x: "全科共通" if x == "default" else x
+        index=departments.index(
+            st.session_state.selected_dept_for_prompt) if st.session_state.selected_dept_for_prompt in departments else 0,
+        format_func=lambda x: "全科共通" if x == "default" else x,
+        key="prompt_department_selector"
     )
+
+    st.session_state.selected_dept_for_prompt = selected_dept
 
     prompt_data = get_prompt_by_department(selected_dept)
 
-    with st.form("edit_prompt_form"):
+    with st.form(key=f"edit_prompt_form_{selected_dept}"):
         prompt_name = st.text_input(
             "プロンプト名",
-            value=prompt_data.get("name", "") if prompt_data else "退院時サマリ"
+            value=prompt_data.get("name", "") if prompt_data else "退院時サマリ",
+            key=f"prompt_name_{selected_dept}"
         )
         prompt_content = st.text_area(
             "内容",
             value=prompt_data.get("content", "") if prompt_data else "",
-            height=300
+            height=200,
+            key=f"prompt_content_{selected_dept}"
         )
 
-        col1, col2 = st.columns(2)
-        with col1:
-            submit = st.form_submit_button("保存")
-        with col2:
-            if selected_dept != "default":
-                delete_button = st.form_submit_button("削除")
-            else:
-                delete_button = False
+        submit = st.form_submit_button("プロンプトを保存")
 
         if submit:
             success, message = create_or_update_prompt(selected_dept, prompt_name, prompt_content)
             if success:
                 st.success(message)
             else:
-                st.error(message)
+                raise AppError(message)
 
-        if delete_button:
+    if selected_dept != "default":
+        if st.button("プロンプトを削除", key=f"delete_prompt_{selected_dept}", type="primary"):
             success, message = delete_prompt(selected_dept)
             if success:
-                st.success(message)
+                st.session_state.success_message = message
+                st.session_state.selected_dept_for_prompt = "default"
                 st.rerun()
             else:
-                st.error(message)
-
-if "input_text" not in st.session_state:
-    st.session_state.input_text = ""
+                raise AppError(message)
 
 
 def clear_inputs():
@@ -148,7 +153,8 @@ def clear_inputs():
             st.session_state[key] = ""
 
 
-def main_app():
+@handle_error
+def render_sidebar():
     user = get_current_user()
     if user:
         st.sidebar.success(f"ログイン中: {user['username']}")
@@ -180,13 +186,6 @@ def main_app():
 
     st.session_state.selected_department = selected_dept
 
-    if st.session_state.current_page == "prompt_edit":
-        prompt_management_ui()
-        return
-    elif st.session_state.current_page == "department_edit":
-        department_management_ui()
-        return
-
     st.sidebar.markdown("・入力および出力テキストは保存されません")
     st.sidebar.markdown("・出力内容は必ず確認してください")
 
@@ -198,6 +197,8 @@ def main_app():
             change_page("prompt_edit")
             st.rerun()
 
+
+def render_input_section():
     if "clear_input" not in st.session_state:
         st.session_state.clear_input = False
 
@@ -212,32 +213,36 @@ def main_app():
 
     with col1:
         if st.button("退院時サマリ作成", type="primary"):
-            if not GEMINI_CREDENTIALS:
-                st.error("⚠️ Gemini APIの認証情報が設定されていません。環境変数を確認してください。")
-                return
-
-            if not input_text or len(input_text.strip()) < 10:
-                st.warning("⚠️ カルテ情報を入力してください")
-                return
-
-            try:
-                with st.spinner("退院時サマリを作成中..."):
-                    discharge_summary = generate_discharge_summary(input_text, st.session_state.selected_department)
-
-                    discharge_summary = format_discharge_summary(discharge_summary)
-
-                    st.session_state.discharge_summary = discharge_summary
-
-                    parsed_summary = parse_discharge_summary(discharge_summary)
-                    st.session_state.parsed_summary = parsed_summary
-
-            except Exception as e:
-                st.error(f"エラーが発生しました: {str(e)}")
+            process_discharge_summary(input_text)
 
     with col2:
         if st.button("テキストをクリア", on_click=clear_inputs):
             pass
 
+
+@handle_error
+def process_discharge_summary(input_text):
+    if not GEMINI_CREDENTIALS:
+        raise APIError(MESSAGES["API_CREDENTIALS_MISSING"])
+
+    if not input_text or len(input_text.strip()) < 10:
+        st.warning(MESSAGES["INPUT_TOO_SHORT"])
+        return
+
+    try:
+        with st.spinner("退院時サマリを作成中..."):
+            discharge_summary = generate_discharge_summary(input_text, st.session_state.selected_department)
+            discharge_summary = format_discharge_summary(discharge_summary)
+            st.session_state.discharge_summary = discharge_summary
+
+            parsed_summary = parse_discharge_summary(discharge_summary)
+            st.session_state.parsed_summary = parsed_summary
+
+    except Exception as e:
+        raise APIError(f"退院時サマリの作成中にエラーが発生しました: {str(e)}")
+
+
+def render_summary_results():
     if st.session_state.discharge_summary:
         if st.session_state.parsed_summary:
             tabs = st.tabs([
@@ -265,6 +270,21 @@ def main_app():
         st.info("💡 テキストエリアの右上にマウスを合わせ、左クリックでコピーできます")
 
 
+@handle_error
+def main_app():
+    if st.session_state.current_page == "prompt_edit":
+        prompt_management_ui()
+        return
+    elif st.session_state.current_page == "department_edit":
+        department_management_ui()
+        return
+
+    render_sidebar()
+    render_input_section()
+    render_summary_results()
+
+
+@handle_error
 def main():
     if IP_CHECK_ENABLED:
         if not check_ip_access(IP_WHITELIST):

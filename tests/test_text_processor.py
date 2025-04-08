@@ -1,20 +1,5 @@
 import pytest
-from utils.text_processor import preprocess_text, format_discharge_summary, parse_discharge_summary
-
-
-def test_preprocess_text():
-    """preprocess_text関数のテスト"""
-    # 単純なテキスト
-    input_text = "これはテストテキストです。"
-    result = preprocess_text(input_text)
-    assert result == input_text
-
-    # 空のテキスト
-    assert preprocess_text("") == ""
-
-    # 特殊文字を含むテキスト
-    special_chars = "* # ＊ 特殊文字テスト *"
-    assert preprocess_text(special_chars) == special_chars
+from utils.text_processor import format_discharge_summary, parse_discharge_summary
 
 
 def test_format_discharge_summary():

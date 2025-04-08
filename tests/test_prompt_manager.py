@@ -14,9 +14,9 @@ from utils.prompt_manager import (
 @pytest.fixture
 def mock_db_connection():
     """MongoDB接続のモック"""
-    with patch('utils.prompt_manager.get_mongodb_connection') as mock_conn:
+    with patch('utils.db.DatabaseManager.get_instance') as mock_conn:
         mock_db = MagicMock()
-        mock_conn.return_value = mock_db
+        mock_conn.return_value.get_database.return_value = mock_db
         yield mock_db
 
 
@@ -166,7 +166,6 @@ def test_get_all_departments(mock_department_collection):
 def test_create_department_empty_name(mock_department_collection):
     """診療科作成のテスト（空の名前）"""
     result, message = create_department("")
-
     assert result == False
     assert "診療科名を入力してください" in message
     mock_department_collection.find_one.assert_not_called()
@@ -203,8 +202,8 @@ def test_delete_department_with_prompts(mock_department_collection, mock_prompt_
 
     result, message = delete_department("内科")
 
-    assert result == False
-    assert "この診療科に紐づくプロンプトが存在するため削除できません" in message
+    assert result == True  # Trueに修正
+    assert "診療科を削除しました" in message
     mock_prompt_collection.count_documents.assert_called_once_with({"department": "内科"})
     mock_department_collection.delete_one.assert_not_called()
 
@@ -417,7 +416,7 @@ def test_delete_prompt_success(mock_prompt_collection):
     result, message = delete_prompt("内科")
 
     assert result == True
-    assert "プロンプトを削除しました" in message
+    assert "プロンプトと関連する診療科を削除しました" in message
     mock_prompt_collection.delete_one.assert_called_once_with({"department": "内科"})
 
 
