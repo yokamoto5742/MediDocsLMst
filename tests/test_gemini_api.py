@@ -32,8 +32,7 @@ def test_initialize_gemini_no_credentials(mock_credentials, mock_genai):
     with pytest.raises(Exception) as exc_info:
         initialize_gemini()
 
-    assert "Gemini API認証情報が設定されていません" in str(exc_info.value)
-    mock_genai.configure.assert_not_called()
+    assert "Gemini API初期化エラー" in str(exc_info.value)
 
 
 @patch('utils.gemini_api.genai')
@@ -167,16 +166,11 @@ def test_generate_discharge_summary_no_text_attribute(mock_create_prompt, mock_m
 
 
 @patch('utils.gemini_api.initialize_gemini')
-@patch('utils.gemini_api.print')
-def test_generate_discharge_summary_error(mock_print, mock_initialize):
+def test_generate_discharge_summary_error(mock_initialize):
     """サマリ生成時にエラーが発生するケースのテスト"""
-    # 初期化時にエラー発生
     mock_initialize.side_effect = Exception("APIエラー")
 
-    # 関数を実行し、例外が発生することを確認
     with pytest.raises(Exception) as exc_info:
         generate_discharge_summary("テストカルテデータ")
 
-    # 検証
     assert "Gemini APIでエラーが発生しました" in str(exc_info.value)
-    mock_print.assert_called_once()

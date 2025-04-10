@@ -3,13 +3,14 @@ import pytest
 from unittest.mock import patch, MagicMock
 import ipaddress
 
+from utils.db import DatabaseManager
 from utils.auth import (
     get_users_collection, hash_password, verify_password,
     register_user, authenticate_user, change_password, logout,
     get_current_user, is_admin, can_edit_prompts,
     get_client_ip, is_ip_allowed, check_ip_access
 )
-from utils.db import DatabaseManager
+from utils.exceptions import DatabaseError
 
 
 def get_mongo_client():
@@ -30,7 +31,6 @@ class SessionState(dict):
 
 @pytest.fixture
 def mock_st():
-    """Streamlitのモック"""
     with patch('utils.auth.st') as mock_st:
         # カスタムクラスでセッション状態をモック
         mock_st.session_state = SessionState()
@@ -40,48 +40,49 @@ def mock_st():
         yield mock_st
 
 
-@patch('utils.auth.MongoClient')
+@patch('utils.db.MongoClient')
 def test_get_mongo_client(mock_mongo_client):
     """MongoDBクライアント取得機能のテスト"""
-    # テスト用のモックを設定
     mock_client = MagicMock()
     mock_mongo_client.return_value = mock_client
 
+    DatabaseManager._instance = None
+    DatabaseManager._client = None
+
     # 環境変数が設定されている場合
-    with patch('utils.auth.MONGODB_URI', 'mongodb://localhost:27017'):
+    with patch('utils.db.MONGODB_URI', 'mongodb://localhost:27017'):
         client = get_mongo_client()
         assert client == mock_client
-        mock_mongo_client.assert_called_once_with('mongodb://localhost:27017')
+        mock_mongo_client.assert_called_once()
+
+    # DatabaseManagerのシングルトンをリセット
+    DatabaseManager._instance = None
+    DatabaseManager._client = None
 
     # 環境変数が設定されていない場合
-    with patch('utils.auth.MONGODB_URI', None):
-        with pytest.raises(ValueError) as excinfo:
+    with patch('utils.db.MONGODB_URI', None):
+        with pytest.raises(DatabaseError) as excinfo:
             get_mongo_client()
         assert "MongoDB接続情報が設定されていません" in str(excinfo.value)
 
 
-@patch('utils.auth.get_mongo_client')
-def test_get_users_collection(mock_get_mongo_client):
+@patch('utils.auth.DatabaseManager.get_instance')
+def test_get_users_collection(mock_get_instance):
     """ユーザーコレクション取得機能のテスト"""
-    # テスト用のモックを設定
-    mock_client = MagicMock()
-    mock_db = MagicMock()
+    mock_db_manager = MagicMock()
     mock_collection = MagicMock()
 
-    mock_client.__getitem__.return_value = mock_db
-    mock_db.__getitem__.return_value = mock_collection
-    mock_get_mongo_client.return_value = mock_client
+    mock_get_instance.return_value = mock_db_manager
+    mock_db_manager.get_collection.return_value = mock_collection
 
     # 環境変数をモック
     with patch.dict('os.environ', {
-        'MONGODB_DB_NAME': 'test_db',
         'MONGODB_USERS_COLLECTION': 'test_users'
     }):
         collection = get_users_collection()
 
         assert collection == mock_collection
-        mock_client.__getitem__.assert_called_once_with('test_db')
-        mock_db.__getitem__.assert_called_once_with('test_users')
+        mock_db_manager.get_collection.assert_called_once_with('test_users')
 
 
 def test_hash_password():
@@ -202,7 +203,7 @@ def test_logout(mock_st):
     mock_st.session_state.user = {"username": "testuser"}
     result = logout()
     assert result == True
-    assert mock_st.session_state.user == None
+    assert mock_st.session_state.user is None
 
     # 未ログイン状態
     mock_st.session_state.user = None
@@ -220,7 +221,7 @@ def test_get_current_user(mock_st):
     # ユーザーがない場合
     mock_st.session_state.user = None
     user = get_current_user()
-    assert user == None
+    assert user is None
 
 
 def test_is_admin(mock_st):

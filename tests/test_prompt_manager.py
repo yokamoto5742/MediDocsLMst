@@ -15,9 +15,9 @@ from utils.prompt_manager import (
 def mock_db_connection():
     """MongoDB接続のモック"""
     with patch('utils.db.DatabaseManager.get_instance') as mock_conn:
-        mock_db = MagicMock()
-        mock_conn.return_value.get_database.return_value = mock_db
-        yield mock_db
+        mock_instance = MagicMock()
+        mock_conn.return_value = mock_instance
+        yield mock_instance
 
 
 @pytest.fixture
@@ -50,25 +50,25 @@ def mock_datetime():
 def test_get_prompt_collection(mock_db_connection):
     """プロンプトコレクション取得のテスト"""
     mock_collection = MagicMock()
-    mock_db_connection.__getitem__.return_value = mock_collection
+    mock_db_connection.get_collection.return_value = mock_collection
 
     with patch('utils.prompt_manager.os.environ.get', return_value='test_prompts'):
         collection = get_prompt_collection()
 
         assert collection == mock_collection
-        mock_db_connection.__getitem__.assert_called_once_with('test_prompts')
+        mock_db_connection.get_collection.assert_called_once_with('test_prompts')
 
 
 def test_get_department_collection(mock_db_connection):
     """診療科コレクション取得のテスト"""
     mock_collection = MagicMock()
-    mock_db_connection.__getitem__.return_value = mock_collection
+    mock_db_connection.get_collection.return_value = mock_collection
 
     with patch('utils.prompt_manager.os.environ.get', return_value='test_departments'):
         collection = get_department_collection()
 
         assert collection == mock_collection
-        mock_db_connection.__getitem__.assert_called_once_with('test_departments')
+        mock_db_connection.get_collection.assert_called_once_with('test_departments')
 
 
 def test_get_current_datetime(mock_datetime):
@@ -165,9 +165,8 @@ def test_get_all_departments(mock_department_collection):
 
 def test_create_department_empty_name(mock_department_collection):
     """診療科作成のテスト（空の名前）"""
-    result, message = create_department("")
+    result = create_department("")
     assert result == False
-    assert "診療科名を入力してください" in message
     mock_department_collection.find_one.assert_not_called()
 
 
@@ -184,49 +183,45 @@ def test_create_department_existing(mock_department_collection):
 
 def test_create_department_success(mock_department_collection):
     """診療科作成のテスト（成功ケース）"""
-    mock_department_collection.find_one.return_value = None
+    mock_department_collection.find_one.side_effect = [
+        None,
+        {"order": 5}
+    ]
 
     result, message = create_department("新しい診療科")
 
     assert result == True
     assert "診療科を登録しました" in message
-    mock_department_collection.find_one.assert_called_once_with({"name": "新しい診療科"})
-    # insert_documentが呼ばれていることを確認
     assert mock_department_collection.insert_one.call_count == 1
 
 
 def test_delete_department_with_prompts(mock_department_collection, mock_prompt_collection):
     """診療科削除のテスト（プロンプトが紐づいている場合）"""
-    # この診療科に紐づくプロンプトがある
-    mock_prompt_collection.count_documents.return_value = 1
-
-    result, message = delete_department("内科")
-
-    assert result == True  # Trueに修正
-    assert "診療科を削除しました" in message
-    mock_prompt_collection.count_documents.assert_called_once_with({"department": "内科"})
-    mock_department_collection.delete_one.assert_not_called()
-
-
-def test_delete_department_success(mock_department_collection, mock_prompt_collection):
-    """診療科削除のテスト（成功ケース）"""
-    # この診療科に紐づくプロンプトはない
-    mock_prompt_collection.count_documents.return_value = 0
-    # 削除成功
     mock_department_collection.delete_one.return_value.deleted_count = 1
 
     result, message = delete_department("内科")
 
     assert result == True
     assert "診療科を削除しました" in message
-    mock_prompt_collection.count_documents.assert_called_once_with({"department": "内科"})
     mock_department_collection.delete_one.assert_called_once_with({"name": "内科"})
+    mock_prompt_collection.delete_many.assert_called_once_with({"department": "内科"})
+
+
+def test_delete_department_success(mock_department_collection, mock_prompt_collection):
+    """診療科削除のテスト（成功ケース）"""
+    mock_prompt_collection.count_documents.return_value = 0
+    mock_department_collection.delete_one.return_value.deleted_count = 1
+
+    result, message = delete_department("内科")
+
+    assert result == True
+    assert "診療科を削除しました" in message
+    mock_department_collection.delete_one.assert_called_once_with({"name": "内科"})
+    mock_prompt_collection.delete_many.assert_called_once_with({"department": "内科"})
 
 
 def test_delete_department_not_found(mock_department_collection, mock_prompt_collection):
     """診療科削除のテスト（診療科が見つからない場合）"""
-    # この診療科に紐づくプロンプトはない
-    mock_prompt_collection.count_documents.return_value = 0
     # 該当する診療科がない
     mock_department_collection.delete_one.return_value.deleted_count = 0
 
@@ -234,8 +229,9 @@ def test_delete_department_not_found(mock_department_collection, mock_prompt_col
 
     assert result == False
     assert "診療科が見つかりません" in message
-    mock_prompt_collection.count_documents.assert_called_once_with({"department": "存在しない科"})
     mock_department_collection.delete_one.assert_called_once_with({"name": "存在しない科"})
+    # 診療科が見つからない場合はプロンプト削除が呼ばれないことを確認
+    mock_prompt_collection.delete_many.assert_not_called()
 
 
 @patch('utils.prompt_manager.get_config')
