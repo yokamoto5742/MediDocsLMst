@@ -35,22 +35,29 @@ def create_discharge_summary_prompt(medical_text, department="default"):
     return prompt
 
 
-def generate_discharge_summary(medical_text, department="default"):
+def generate_discharge_summary(medical_text, department="default", model_name=None):
     try:
         initialize_gemini()
-        model_name = os.environ.get("GEMINI_MODEL")
+        if not model_name:
+            model_name = GEMINI_MODEL
         model = genai.GenerativeModel(model_name)
 
         prompt = create_discharge_summary_prompt(medical_text, department)
         response = model.generate_content(prompt)
 
-        # レスポンスからテキストを抽出
         if hasattr(response, 'text'):
             summary_text = response.text
         else:
             summary_text = str(response)
 
-        return summary_text
+        input_tokens = 0
+        output_tokens = 0
+
+        if hasattr(response, 'usage_metadata'):
+            input_tokens = response.usage_metadata.prompt_token_count
+            output_tokens = response.usage_metadata.candidates_token_count
+
+        return summary_text, input_tokens, output_tokens
 
     except APIError as e:
         raise e

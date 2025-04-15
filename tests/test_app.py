@@ -314,7 +314,7 @@ def test_generate_discharge_summary(mock_get_prompt, mock_genai):
 
     with patch('os.environ.get', return_value="gemini-pro"):
         summary = generate_discharge_summary("テストカルテデータ", "内科")
-        assert summary == "テスト退院時サマリ"
+        assert summary[0] == "テスト退院時サマリ"
         model.generate_content.assert_called_once()
 
 

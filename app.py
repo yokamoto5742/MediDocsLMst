@@ -1,19 +1,25 @@
+import datetime
 import os
+
+import pandas as pd
 import streamlit as st
 
 from utils.auth import login_ui, require_login, logout, get_current_user, password_change_ui, can_edit_prompts, check_ip_access
-from utils.config import get_config, GEMINI_CREDENTIALS, REQUIRE_LOGIN, IP_CHECK_ENABLED, IP_WHITELIST
+from utils.config import get_config, GEMINI_CREDENTIALS, GEMINI_MODEL, GEMINI_FLASH_MODEL, CLAUDE_API_KEY, CLAUDE_MODEL, SELECTED_AI_MODEL, REQUIRE_LOGIN, IP_CHECK_ENABLED, IP_WHITELIST
+from utils.claude_api import generate_discharge_summary as claude_generate_discharge_summary
 from utils.constants import MESSAGES
+from utils.db import get_usage_collection
 from utils.env_loader import load_environment_variables
-from utils.gemini_api import generate_discharge_summary
+from utils.error_handlers import handle_error
+from utils.exceptions import AppError, AuthError, APIError, DatabaseError
+from utils.gemini_api import generate_discharge_summary as gemini_generate_discharge_summary
 from utils.prompt_manager import (
     initialize_database, get_all_departments, get_all_prompts,
     create_or_update_prompt, delete_prompt, get_prompt_by_department,
-    create_department, delete_department
+    create_department, delete_department, update_department_order
 )
 from utils.text_processor import format_discharge_summary, parse_discharge_summary
-from utils.error_handlers import handle_error
-from utils.exceptions import AppError, AuthError, APIError, DatabaseError
+
 
 load_environment_variables()
 initialize_database()
@@ -54,12 +60,56 @@ def department_management_ui():
         change_page("main")
         st.rerun()
 
+    if "show_move_options" not in st.session_state:
+        st.session_state.show_move_options = {}
+
     departments = get_all_departments()
-    for dept in departments:
-        col1, col2 = st.columns([4, 1])
+
+    # 診療科一覧とその順序変更ボタンを表示
+    for i, dept in enumerate(departments):
+        col1, col2, col3 = st.columns([4, 1, 1])
         with col1:
             st.write(dept)
+
         with col2:
+            # 移動ボタン - 上下をまとめる
+            if dept not in st.session_state.show_move_options:
+                if st.button("⇅", key=f"move_{dept}"):
+                    st.session_state.show_move_options[dept] = True
+                    st.rerun()
+            else:
+                # 移動オプションを表示
+                move_options_container = st.container()
+                with move_options_container:
+                    move_col1, move_col2, move_col3 = st.columns(3)
+
+                    with move_col1:
+                        if i > 0 and st.button("↑", key=f"up_action_{dept}"):
+                            success, message = update_department_order(dept, i - 1)
+                            if success:
+                                st.success(message)
+                                # 移動後はUIを閉じる
+                                del st.session_state.show_move_options[dept]
+                            else:
+                                raise AppError(message)
+                            st.rerun()
+
+                    with move_col2:
+                        if i < len(departments) - 1 and st.button("↓", key=f"down_action_{dept}"):
+                            success, message = update_department_order(dept, i + 1)
+                            if success:
+                                st.success(message)
+                                del st.session_state.show_move_options[dept]
+                            else:
+                                raise AppError(message)
+                            st.rerun()
+
+                    with move_col3:
+                        if st.button("✕", key=f"cancel_move_{dept}"):
+                            del st.session_state.show_move_options[dept]
+                            st.rerun()
+
+        with col3:
             if dept not in ["内科"]:
                 if st.button("削除", key=f"delete_{dept}"):
                     success, message = delete_department(dept)
@@ -69,7 +119,7 @@ def department_management_ui():
                         raise AppError(message)
                     st.rerun()
 
-    with st.form("add_department_form"):
+    with st.form(key="add_department_form_unique"):
         new_dept = st.text_input("診療科名")
         submit = st.form_submit_button("診療科を追加")
 
@@ -183,8 +233,34 @@ def render_sidebar():
         format_func=lambda x: "全科共通" if x == "default" else x,
         key="department_selector"
     )
-
     st.session_state.selected_department = selected_dept
+
+    available_models = []
+    if GEMINI_MODEL and GEMINI_CREDENTIALS:
+        available_models.append("Gemini_Pro")
+    if GEMINI_FLASH_MODEL and GEMINI_CREDENTIALS:
+        available_models.append("Gemini_Flash")
+    if CLAUDE_API_KEY:
+        available_models.append("Claude")
+
+    if len(available_models) > 1:
+        if "selected_model" not in st.session_state:
+            default_model = SELECTED_AI_MODEL
+            if default_model not in available_models and available_models:
+                default_model = available_models[0]
+            st.session_state.selected_model = default_model
+
+        selected_model = st.sidebar.selectbox(
+            "AIモデル",
+            available_models,
+            index=available_models.index(
+                st.session_state.selected_model) if st.session_state.selected_model in available_models else 0,
+            key="model_selector"
+        )
+        st.session_state.selected_model = selected_model
+
+    elif len(available_models) == 1:
+        st.session_state.selected_model = available_models[0]
 
     st.sidebar.markdown("・入力および出力テキストは保存されません")
     st.sidebar.markdown("・出力内容は必ず確認してください")
@@ -195,6 +271,10 @@ def render_sidebar():
             st.rerun()
         if st.sidebar.button("プロンプト管理", key="prompt_management"):
             change_page("prompt_edit")
+            st.rerun()
+
+        if st.sidebar.button("統計情報", key="usage_statistics"):
+            change_page("statistics")
             st.rerun()
 
 
@@ -222,21 +302,58 @@ def render_input_section():
 
 @handle_error
 def process_discharge_summary(input_text):
-    if not GEMINI_CREDENTIALS:
-        raise APIError(MESSAGES["API_CREDENTIALS_MISSING"])
+    if not GEMINI_CREDENTIALS and not CLAUDE_API_KEY:
+        raise APIError(MESSAGES["NO_API_CREDENTIALS"])
 
-    if not input_text or len(input_text.strip()) < 10:
+    if not input_text or len(input_text.strip()) < 100:
         st.warning(MESSAGES["INPUT_TOO_SHORT"])
         return
 
     try:
         with st.spinner("退院時サマリを作成中..."):
-            discharge_summary = generate_discharge_summary(input_text, st.session_state.selected_department)
+            selected_model = getattr(st.session_state, "selected_model",
+                                     available_models[0] if available_models else None)
+
+            if selected_model == "Claude" and CLAUDE_API_KEY:
+                discharge_summary, input_tokens, output_tokens = claude_generate_discharge_summary(
+                    input_text,
+                    st.session_state.selected_department,
+                )
+                model_detail = selected_model
+            elif selected_model == "Gemini_Pro" and GEMINI_MODEL and GEMINI_CREDENTIALS:
+                discharge_summary, input_tokens, output_tokens = gemini_generate_discharge_summary(
+                    input_text,
+                    st.session_state.selected_department,
+                    GEMINI_MODEL,
+                )
+                model_detail = GEMINI_MODEL
+            elif selected_model == "Gemini_Flash" and GEMINI_FLASH_MODEL and GEMINI_CREDENTIALS:
+                discharge_summary, input_tokens, output_tokens = gemini_generate_discharge_summary(
+                    input_text,
+                    st.session_state.selected_department,
+                    GEMINI_FLASH_MODEL,
+                )
+                model_detail = GEMINI_FLASH_MODEL
+            else:
+                raise APIError(MESSAGES["NO_API_CREDENTIALS"])
+
             discharge_summary = format_discharge_summary(discharge_summary)
             st.session_state.discharge_summary = discharge_summary
 
             parsed_summary = parse_discharge_summary(discharge_summary)
             st.session_state.parsed_summary = parsed_summary
+
+            usage_collection = get_usage_collection()
+            usage_data = {
+                "date": datetime.datetime.now(),
+                "model": selected_model,
+                "model_detail": model_detail,
+                "department": st.session_state.selected_department,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": input_tokens + output_tokens
+            }
+            usage_collection.insert_one(usage_data)
 
     except Exception as e:
         raise APIError(f"退院時サマリの作成中にエラーが発生しました: {str(e)}")
@@ -271,12 +388,130 @@ def render_summary_results():
 
 
 @handle_error
+def usage_statistics_ui():
+    if st.button("メイン画面に戻る", key="back_to_main_from_stats"):
+        change_page("main")
+        st.rerun()
+
+    usage_collection = get_usage_collection()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        today = datetime.datetime.now().date()
+        start_date = st.date_input("開始日", today - datetime.timedelta(days=30))
+        end_date = st.date_input("終了日", today)
+
+    with col2:
+        models = ["すべて", "Claude", "Gemini"]
+        selected_model = st.selectbox("AIモデル", models, index=0)
+
+    start_datetime = datetime.datetime.combine(start_date, datetime.time.min)
+    end_datetime = datetime.datetime.combine(end_date, datetime.time.max)
+
+    query = {
+        "date": {
+            "$gte": start_datetime,
+            "$lte": end_datetime
+        }
+    }
+
+    if selected_model != "すべて":
+        query["model"] = selected_model
+
+    total_summary = usage_collection.aggregate([
+        {"$match": query},
+        {"$group": {
+            "_id": None,
+            "count": {"$sum": 1},
+            "total_input_tokens": {"$sum": "$input_tokens"},
+            "total_output_tokens": {"$sum": "$output_tokens"},
+            "total_tokens": {"$sum": "$total_tokens"}
+        }}
+    ])
+
+    total_summary = list(total_summary)
+
+    if not total_summary:
+        st.info("指定した期間のデータがありません")
+        return
+
+    dept_summary = usage_collection.aggregate([
+        {"$match": query},
+        {"$group": {
+            "_id": "$department",
+            "count": {"$sum": 1},
+            "input_tokens": {"$sum": "$input_tokens"},
+            "output_tokens": {"$sum": "$output_tokens"},
+            "total_tokens": {"$sum": "$total_tokens"}
+        }},
+        {"$sort": {"count": -1}}
+    ])
+
+    dept_summary = list(dept_summary)
+
+    records = usage_collection.find(
+        query,
+        {
+            "date": 1,
+            "model": 1,
+            "model_detail": 1,
+            "input_tokens": 1,
+            "output_tokens": 1,
+            "total_tokens": 1,
+            "_id": 0
+        }
+    ).sort("date", -1)  # 日付の降順で取得
+
+    data = []
+    for stat in dept_summary:
+        dept_name = "全科共通" if stat["_id"] == "default" else stat["_id"]
+        data.append({
+            "診療科": dept_name,
+            "作成件数": stat["count"],
+            "入力トークン": stat["input_tokens"],
+            "出力トークン": stat["output_tokens"],
+            "合計トークン": stat["total_tokens"]
+        })
+
+    df = pd.DataFrame(data)
+    st.dataframe(df, hide_index=True)
+
+    detail_data = []
+    for record in records:
+        model = record.get("model", "")
+        model_detail = record.get("model_detail", "")
+
+        if model == "Gemini":
+            if "flash" in str(model_detail).lower():
+                model_info = "Gemini_Flash"
+            else:
+                model_info = "Gemini_Pro"
+        else:
+            model_info = model
+
+        detail_data.append({
+            "作成日": record["date"].strftime("%Y-%m-%d"),
+            "AIモデル": model_info,
+            "入力トークン": record["input_tokens"],
+            "出力トークン": record["output_tokens"],
+            "合計トークン": record["total_tokens"]
+        })
+
+    detail_df = pd.DataFrame(detail_data)
+    st.dataframe(detail_df, hide_index=True)
+
+
+@handle_error
 def main_app():
     if st.session_state.current_page == "prompt_edit":
         prompt_management_ui()
         return
     elif st.session_state.current_page == "department_edit":
         department_management_ui()
+        return
+    elif st.session_state.current_page == "statistics":
+        usage_statistics_ui()
         return
 
     render_sidebar()

@@ -26,6 +26,12 @@ MONGODB_DEPARTMENTS_COLLECTION = os.environ.get("MONGODB_DEPARTMENTS_COLLECTION"
 
 GEMINI_CREDENTIALS = os.environ.get("GEMINI_CREDENTIALS")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL")
+GEMINI_FLASH_MODEL = os.environ.get("GEMINI_FLASH_MODEL")
+
+CLAUDE_API_KEY = os.environ.get("CLAUDE_API_KEY")
+CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL")
+
+SELECTED_AI_MODEL = os.environ.get("SELECTED_AI_MODEL", "gemini")
 
 REQUIRE_LOGIN = os.environ.get("REQUIRE_LOGIN", "True").lower() in ("true", "1", "yes")
 

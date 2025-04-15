@@ -47,3 +47,13 @@ class DatabaseManager:
     def get_collection(self, collection_name, db_name=None):
         db = self.get_database(db_name)
         return db[collection_name]
+
+
+def get_usage_collection():
+    """使用統計を保存するコレクションを取得"""
+    try:
+        db_manager = DatabaseManager.get_instance()
+        collection_name = "summary_usage"
+        return db_manager.get_collection(collection_name)
+    except Exception as e:
+        raise DatabaseError(f"使用状況コレクションの取得に失敗しました: {str(e)}")

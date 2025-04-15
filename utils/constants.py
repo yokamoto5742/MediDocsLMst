@@ -20,8 +20,10 @@ MESSAGES = {
 
     # エラーメッセージ
     "FIELD_REQUIRED": "すべての項目を入力してください",
+    "INPUT_TOO_SHORT": "⚠️ カルテ情報を入力してください",
     "API_CREDENTIALS_MISSING": "⚠️ Gemini APIの認証情報が設定されていません。環境変数を確認してください。",
-    "INPUT_TOO_SHORT": "⚠️ カルテ情報を入力してください"
+    "CLAUDE_API_CREDENTIALS_MISSING": "⚠️ Claude APIの認証情報が設定されていません。環境変数を確認してください。",
+    "NO_API_CREDENTIALS": "⚠️ 使用可能なAI APIの認証情報が設定されていません。環境変数を確認してください。",
 }
 
 DEFAULT_DEPARTMENTS = ["内科", "消化器内科", "整形外科", "眼科"]

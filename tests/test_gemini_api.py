@@ -120,10 +120,9 @@ def test_generate_discharge_summary_success(mock_create_prompt, mock_model_class
     result = generate_discharge_summary("テストカルテデータ", "内科")
 
     # 検証
-    assert result == "生成された退院時サマリ"
+    assert result[0] == "生成された退院時サマリ"
     mock_initialize.assert_called_once()
-    mock_environ_get.assert_called_once_with("GEMINI_MODEL")
-    mock_model_class.assert_called_once_with("gemini-pro")
+    mock_model_class.assert_called_once_with("gemini-2.5-pro-exp-03-25")
     mock_create_prompt.assert_called_once_with("テストカルテデータ", "内科")
     mock_model.generate_content.assert_called_once_with("テストプロンプト")
 
@@ -161,7 +160,7 @@ def test_generate_discharge_summary_no_text_attribute(mock_create_prompt, mock_m
     result = generate_discharge_summary("テストカルテデータ")
 
     # 検証
-    assert result == "文字列化されたレスポンス"
+    assert result[0] == "文字列化されたレスポンス"
     mock_initialize.assert_called_once()
 
 
