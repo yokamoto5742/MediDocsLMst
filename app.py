@@ -403,7 +403,7 @@ def usage_statistics_ui():
         end_date = st.date_input("終了日", today)
 
     with col2:
-        models = ["すべて", "Claude", "Gemini"]
+        models = ["すべて", "Claude", "Gemini_Pro", "Gemini_Flash"]
         selected_model = st.selectbox("AIモデル", models, index=0)
 
     start_datetime = datetime.datetime.combine(start_date, datetime.time.min)
@@ -417,7 +417,14 @@ def usage_statistics_ui():
     }
 
     if selected_model != "すべて":
-        query["model"] = selected_model
+        if selected_model == "Gemini_Pro":
+            query["model"] = "Gemini"
+            query["model_detail"] = {"$not": {"$regex": "flash", "$options": "i"}}
+        elif selected_model == "Gemini_Flash":
+            query["model"] = "Gemini"
+            query["model_detail"] = {"$regex": "flash", "$options": "i"}
+        else:  # Claude
+            query["model"] = selected_model
 
     total_summary = usage_collection.aggregate([
         {"$match": query},
