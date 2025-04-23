@@ -31,12 +31,18 @@ GEMINI_FLASH_MODEL = os.environ.get("GEMINI_FLASH_MODEL")
 CLAUDE_API_KEY = os.environ.get("CLAUDE_API_KEY")
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL")
 
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL")
+
 SELECTED_AI_MODEL = os.environ.get("SELECTED_AI_MODEL", "gemini")
 
 REQUIRE_LOGIN = os.environ.get("REQUIRE_LOGIN", "True").lower() in ("true", "1", "yes")
 
 IP_WHITELIST = os.environ.get("IP_WHITELIST", "")
 IP_CHECK_ENABLED = os.environ.get("IP_CHECK_ENABLED", "False").lower() in ("true", "1", "yes")
+
+MAX_INPUT_TOKENS = int(os.environ.get("MAX_INPUT_TOKENS", "100000"))
+MIN_INPUT_TOKENS = int(os.environ.get("MIN_INPUT_TOKENS", "100"))
 
 
 def get_gemini_client():
