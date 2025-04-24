@@ -229,32 +229,18 @@ def can_edit_prompts():
 
 
 def get_client_ip():
-    forwarded_for = st.experimental_get_query_params().get('X-Forwarded-For', [None])[0]
-    if forwarded_for:
-        return forwarded_for.split(',')[0].strip()
+    """クライアントのIPアドレスを取得する"""
+    ip = os.environ.get("HTTP_X_FORWARDED_FOR") or os.environ.get("REMOTE_ADDR")
 
-    if hasattr(st, 'request'):
-        if hasattr(st.request, 'headers'):
-            forwarded = st.request.headers.get('X-Forwarded-For')
-            if forwarded:
-                return forwarded.split(',')[0].strip()
+    # ローカル開発環境の場合はlocalhostとして扱う
+    if not ip:
+        ip = "127.0.0.1"
 
-    st.write("IPアドレス取得デバッグ情報:")
-    for key, value in os.environ.items():
-        if "FORWARD" in key or "REMOTE" in key or "IP" in key or "CLIENT" in key:
-            st.write(f"{key}: {value}")
-
-    return "127.0.0.1"
+    return ip
 
 
 def is_ip_allowed(ip, whitelist_str):
-    st.write(f"チェック対象IP: {ip}")
-    st.write(f"ホワイトリスト: {whitelist_str}")
-
-    if os.environ.get("DEBUG_ALLOW_ALL", "").lower() in ("true", "1", "yes"):
-        st.write("デバッグモード: すべてのIPを許可")
-        return True
-
+    """IPアドレスがホワイトリストに含まれているかをチェック"""
     if not whitelist_str.strip():
         return True
 
