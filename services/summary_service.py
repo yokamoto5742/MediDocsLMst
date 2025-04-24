@@ -46,12 +46,10 @@ def generate_summary_task(input_text, selected_department, selected_model, resul
                 )
                 model_detail = selected_model
             except Exception as e:
-                # OpenAIのクォータエラーをチェック
                 error_str = str(e)
                 if "insufficient_quota" in error_str or "exceeded your current quota" in error_str:
                     raise APIError("OpenAI APIのクォータを超過しています。請求情報を確認するか、管理者に連絡してください。")
                 else:
-                    # その他のエラーはそのまま再スロー
                     raise e
         else:
             raise APIError(MESSAGES["NO_API_CREDENTIALS"])
