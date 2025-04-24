@@ -12,7 +12,7 @@ MODEL_MAPPING = {
     "Gemini_Pro": {"pattern": "gemini", "exclude": "flash"},
     "Gemini_Flash": {"pattern": "flash", "exclude": None},
     "Claude": {"pattern": "claude", "exclude": None},
-    "GPT4o": {"pattern": "gpt4.1", "exclude": None},
+    "GPT4.1": {"pattern": "gpt4.1", "exclude": None},
 }
 
 
