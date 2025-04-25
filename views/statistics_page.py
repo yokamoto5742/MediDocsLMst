@@ -1,4 +1,5 @@
 import datetime
+import pytz
 
 import pandas as pd
 import streamlit as st
@@ -7,6 +8,8 @@ from utils.constants import DOCUMENT_NAME_OPTIONS
 from utils.error_handlers import handle_error
 from utils.db import get_usage_collection
 from ui_components.navigation import change_page
+
+JST = pytz.timezone('Asia/Tokyo')
 
 MODEL_MAPPING = {
     "Gemini_Pro": {"pattern": "gemini", "exclude": "flash"},
@@ -141,8 +144,10 @@ def usage_statistics_ui():
                 model_info = model_name
                 break
 
+        jst_date = record["date"].astimezone(JST) if record["date"].tzinfo else JST.localize(record["date"])
+
         detail_data.append({
-            "作成日": record["date"].strftime("%Y-%m-%d"),
+            "作成日": jst_date.strftime("%Y年%m月%d日"),
             "文書名": record.get("document_name", "不明"),
             "AIモデル": model_info,
             "入力トークン": record["input_tokens"],
