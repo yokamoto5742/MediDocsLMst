@@ -4,7 +4,7 @@ import os
 from google import genai
 from google.genai import types
 
-from utils.config import get_config, GEMINI_CREDENTIALS, GEMINI_MODEL
+from utils.config import get_config, GEMINI_CREDENTIALS, GEMINI_MODEL, GEMINI_THINKING_BUDGET
 from utils.constants import MESSAGES
 from utils.prompt_manager import get_prompt_by_department
 from utils.exceptions import APIError
@@ -49,7 +49,7 @@ def gemini_generate_discharge_summary(medical_text, department="default", model_
             contents=prompt,
             config=types.GenerateContentConfig(
                 thinking_config=types.ThinkingConfig(
-                    thinking_budget=0
+                    thinking_budget=GEMINI_THINKING_BUDGET
                 )
             )
         )
