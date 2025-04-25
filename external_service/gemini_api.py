@@ -1,7 +1,8 @@
 import json
 import os
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from utils.config import get_config, GEMINI_CREDENTIALS, GEMINI_MODEL
 from utils.constants import MESSAGES
@@ -12,8 +13,8 @@ from utils.exceptions import APIError
 def initialize_gemini():
     try:
         if GEMINI_CREDENTIALS:
-            genai.configure(api_key=GEMINI_CREDENTIALS)
-            return True
+            client = genai.Client(api_key=GEMINI_CREDENTIALS)
+            return client
         else:
             raise APIError(MESSAGES["API_CREDENTIALS_MISSING"])
 
@@ -37,13 +38,21 @@ def create_discharge_summary_prompt(medical_text, department="default"):
 
 def gemini_generate_discharge_summary(medical_text, department="default", model_name=None):
     try:
-        initialize_gemini()
+        client = initialize_gemini()
         if not model_name:
             model_name = GEMINI_MODEL
-        model = genai.GenerativeModel(model_name)
 
         prompt = create_discharge_summary_prompt(medical_text, department)
-        response = model.generate_content(prompt)
+
+        response = client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                thinking_config=types.ThinkingConfig(
+                    thinking_budget=0
+                )
+            )
+        )
 
         if hasattr(response, 'text'):
             summary_text = response.text
