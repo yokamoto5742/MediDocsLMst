@@ -103,8 +103,9 @@ def usage_statistics_ui():
         query,
         {
             "date": 1,
-            "model_detail": 1,
             "document_name": 1,
+            "model_detail": 1,
+            "department": 1,
             "input_tokens": 1,
             "output_tokens": 1,
             "total_tokens": 1,
@@ -147,8 +148,9 @@ def usage_statistics_ui():
         jst_date = record["date"].astimezone(JST) if record["date"].tzinfo else JST.localize(record["date"])
 
         detail_data.append({
-            "作成日": jst_date.strftime("%Y年%m月%d日"),
+            "作成日": jst_date.strftime("%Y/%m/%d"),
             "文書名": record.get("document_name", "不明"),
+            "診療科": record.get("department"),
             "AIモデル": model_info,
             "入力トークン": record["input_tokens"],
             "出力トークン": record["output_tokens"],
