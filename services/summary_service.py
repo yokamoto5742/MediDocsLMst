@@ -2,6 +2,7 @@ import datetime
 import threading
 import time
 import queue
+import pytz
 
 import streamlit as st
 
@@ -14,6 +15,8 @@ from utils.exceptions import APIError
 from utils.text_processor import format_discharge_summary, parse_discharge_summary
 from utils.db import get_usage_collection
 from utils.config import GEMINI_CREDENTIALS, CLAUDE_API_KEY, OPENAI_API_KEY, GEMINI_MODEL, GEMINI_FLASH_MODEL, OPENAI_MODEL, MAX_INPUT_TOKENS, MIN_INPUT_TOKENS
+
+JST = pytz.timezone('Asia/Tokyo')
 
 
 def generate_summary_task(input_text, selected_department, selected_model, result_queue):
@@ -129,8 +132,9 @@ def process_discharge_summary(input_text):
 
             try:
                 usage_collection = get_usage_collection()
+                now_jst = datetime.datetime.now().astimezone(JST)
                 usage_data = {
-                    "date": datetime.datetime.now(),
+                    "date": now_jst,
                     "app_type": APP_TYPE,
                     "document_name": DOCUMENT_NAME,
                     "model_detail": model_detail,
