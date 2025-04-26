@@ -44,15 +44,21 @@ def gemini_generate_discharge_summary(medical_text, department="default", model_
 
         prompt = create_discharge_summary_prompt(medical_text, department)
 
-        response = client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                thinking_config=types.ThinkingConfig(
-                    thinking_budget=GEMINI_THINKING_BUDGET
+        if GEMINI_THINKING_BUDGET:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    thinking_config=types.ThinkingConfig(
+                        thinking_budget=GEMINI_THINKING_BUDGET
+                    )
                 )
             )
-        )
+        else:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt
+            )
 
         if hasattr(response, 'text'):
             summary_text = response.text
