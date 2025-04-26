@@ -148,7 +148,7 @@ def usage_statistics_ui():
         jst_date = record["date"].astimezone(JST) if record["date"].tzinfo else JST.localize(record["date"])
 
         detail_data.append({
-            "作成日": jst_date.strftime("%Y年%m月%d日"),
+            "作成日": jst_date.strftime("%Y/%m/%d"),
             "診療科": "全科共通" if record.get("department") == "default" else record.get("department"),
             "文書名": record.get("document_name", "不明"),
             "AIモデル": model_info,
