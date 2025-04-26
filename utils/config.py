@@ -42,7 +42,7 @@ REQUIRE_LOGIN = os.environ.get("REQUIRE_LOGIN", "True").lower() in ("true", "1",
 IP_WHITELIST = os.environ.get("IP_WHITELIST", "")
 IP_CHECK_ENABLED = os.environ.get("IP_CHECK_ENABLED", "False").lower() in ("true", "1", "yes")
 
-MAX_INPUT_TOKENS = int(os.environ.get("MAX_INPUT_TOKENS", "100000"))
+MAX_INPUT_TOKENS = int(os.environ.get("MAX_INPUT_TOKENS", "200000"))
 MIN_INPUT_TOKENS = int(os.environ.get("MIN_INPUT_TOKENS", "100"))
 
 
