@@ -108,7 +108,6 @@ def usage_statistics_ui():
             "department": 1,
             "input_tokens": 1,
             "output_tokens": 1,
-            "total_tokens": 1,
             "processing_time": 1,
             "_id": 0
         }
@@ -154,7 +153,7 @@ def usage_statistics_ui():
             "AIモデル": model_info,
             "入力トークン": record["input_tokens"],
             "出力トークン": record["output_tokens"],
-            "合計トークン": record["total_tokens"],
+
             "処理時間(秒)": round(record["processing_time"]),
         })
 
