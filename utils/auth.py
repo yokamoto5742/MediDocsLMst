@@ -229,12 +229,12 @@ def can_edit_prompts():
 
 
 def get_client_ip():
-    """クライアントのIPアドレスを取得する"""
-    ip = os.environ.get("HTTP_X_FORWARDED_FOR") or os.environ.get("REMOTE_ADDR")
-
-    # ローカル開発環境の場合はlocalhostとして扱う
-    if not ip:
-        ip = "127.0.0.1"
+    # Heroku環境ではX-Forwarded-ForヘッダーからクライアントのリアルIPを取得
+    forwarded_for = st.request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        ip = forwarded_for.split(',')[0].strip()
+    else:
+        ip = os.environ.get("REMOTE_ADDR", "127.0.0.1")
 
     return ip
 
