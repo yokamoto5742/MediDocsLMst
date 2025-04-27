@@ -229,14 +229,8 @@ def can_edit_prompts():
 
 
 def get_client_ip():
-    # Heroku環境ではX-Forwarded-ForヘッダーからクライアントのリアルIPを取得
-    forwarded_for = st.request.headers.get("X-Forwarded-For")
-    if forwarded_for:
-        ip = forwarded_for.split(',')[0].strip()
-    else:
-        ip = os.environ.get("REMOTE_ADDR", "127.0.0.1")
-
-    return ip
+    # 環境変数からIPアドレスを取得
+    return os.environ.get("REMOTE_ADDR", "127.0.0.1")
 
 
 def is_ip_allowed(ip, whitelist_str):
