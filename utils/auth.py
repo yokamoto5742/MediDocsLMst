@@ -270,6 +270,10 @@ def is_ip_allowed(ip, whitelist_str):
 def check_ip_access(whitelist_str):
     """IPアドレスのアクセス制限をチェック"""
     client_ip = get_client_ip()
+    # デバッグ情報を表示
+    st.write(f"検出されたIPアドレス: {client_ip}")
+    st.write(f"アクセス許可IPリスト: {whitelist_str}")
+
     if not is_ip_allowed(client_ip, whitelist_str):
         st.title("アクセスが制限されています")
         st.error(f"このIPアドレス（{client_ip}）からはアクセスできません。")
