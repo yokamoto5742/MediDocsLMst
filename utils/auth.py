@@ -229,7 +229,16 @@ def can_edit_prompts():
 
 
 def get_client_ip():
-    # 環境変数からIPアドレスを取得
+    """クライアントのIPアドレスを取得"""
+    forwarded_for = os.environ.get("HTTP_X_FORWARDED_FOR")
+    if forwarded_for:
+        ip = forwarded_for.split(',')[0].strip()
+        return ip
+
+    real_ip = os.environ.get("HTTP_X_REAL_IP")
+    if real_ip:
+        return real_ip
+
     return os.environ.get("REMOTE_ADDR", "127.0.0.1")
 
 
@@ -259,6 +268,8 @@ def check_ip_access(whitelist_str):
     """IPアドレスのアクセス制限をチェック"""
     client_ip = get_client_ip()
     if not is_ip_allowed(client_ip, whitelist_str):
+        st.title("アクセスが制限されています")
         st.error(f"このIPアドレス（{client_ip}）からはアクセスできません。")
+        st.info("システム管理者にお問い合わせください。")
         return False
     return True
