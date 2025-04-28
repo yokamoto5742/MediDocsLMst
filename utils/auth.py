@@ -228,23 +228,6 @@ def can_edit_prompts():
     return is_admin()
 
 
-def get_client_ip():
-    """クライアントのIPアドレスを取得"""
-    try:
-        forwarded_for = os.environ.get("HTTP_X_FORWARDED_FOR")
-        if forwarded_for:
-            return forwarded_for.split(',')[0].strip()
-
-        if hasattr(st, "request") and hasattr(st.request, "headers"):
-            forwarded_for = st.request.headers.get("X-Forwarded-For")
-            if forwarded_for:
-                return forwarded_for.split(',')[0].strip()
-    except:
-        pass
-
-    return os.environ.get("REMOTE_ADDR", "127.0.0.1")
-
-
 def is_ip_allowed(ip, whitelist_str):
     """IPアドレスがホワイトリストに含まれているかをチェック"""
     if not whitelist_str.strip():
@@ -265,6 +248,23 @@ def is_ip_allowed(ip, whitelist_str):
     except ValueError:
         # IPアドレスの解析エラー
         return False
+
+
+def get_client_ip():
+    """クライアントのIPアドレスを取得"""
+    try:
+        forwarded_for = os.environ.get("HTTP_X_FORWARDED_FOR")
+        if forwarded_for:
+            return forwarded_for.split(',')[0].strip()
+
+        if hasattr(st, "request") and hasattr(st.request, "headers"):
+            forwarded_for = st.request.headers.get("X-Forwarded-For")
+            if forwarded_for:
+                return forwarded_for.split(',')[0].strip()
+    except:
+        pass
+
+    return os.environ.get("REMOTE_ADDR", "127.0.0.1")
 
 
 def check_ip_access(whitelist_str):
