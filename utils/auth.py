@@ -257,7 +257,6 @@ def is_ip_allowed(ip, whitelist_str):
                     return True
         return False
     except ValueError:
-        # IPアドレスの解析エラー
         return False
 
 
