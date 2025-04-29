@@ -21,9 +21,8 @@ def render_input_section():
     if "clear_input" not in st.session_state:
         st.session_state.clear_input = False
 
-    # additional_infoが初期化されていなければ初期値を設定
     if "additional_info" not in st.session_state:
-        st.session_state.additional_info = "退院時処方"
+        st.session_state.additional_info = "退院時処方\n(ここに貼り付け)"
 
     input_text = st.text_area(
         "カルテ記載入力",
@@ -34,7 +33,6 @@ def render_input_section():
 
     additional_info = st.text_area(
         "追加情報入力",
-        value="退院時処方\n(ここに貼り付け)",
         height=70,
         key="additional_info"
     )
