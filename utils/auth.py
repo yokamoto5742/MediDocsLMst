@@ -1,5 +1,6 @@
 import os
 import ipaddress
+import requests
 
 import bcrypt
 import streamlit as st
@@ -228,17 +229,6 @@ def can_edit_prompts():
     return is_admin()
 
 
-def get_client_ip():
-    """クライアントのIPアドレスを取得する"""
-    ip = os.environ.get("HTTP_X_FORWARDED_FOR") or os.environ.get("REMOTE_ADDR")
-
-    # ローカル開発環境の場合はlocalhostとして扱う
-    if not ip:
-        ip = "127.0.0.1"
-
-    return ip
-
-
 def is_ip_allowed(ip, whitelist_str):
     """IPアドレスがホワイトリストに含まれているかをチェック"""
     if not whitelist_str.strip():
@@ -260,10 +250,66 @@ def is_ip_allowed(ip, whitelist_str):
         return False
 
 
+def get_client_ip():
+    """クライアントのIPアドレスを取得 - Heroku環境用に最適化"""
+    # デバッグ用にすべての環境変数を記録
+    env_vars = {k: v for k, v in os.environ.items() if 'IP' in k.upper() or 'FORWARD' in k.upper() or 'X_' in k.upper()}
+    print(f"IP関連の環境変数: {env_vars}")
+
+    # Herokuの場合、実際のIPアドレスは特定の環境変数やリクエストヘッダーに格納されています
+    # 方法1: X-Forwarded-For環境変数から取得
+    forwarded_for = os.environ.get("X_FORWARDED_FOR") or os.environ.get("HTTP_X_FORWARDED_FOR")
+    if forwarded_for:
+        ip = forwarded_for.split(',')[0].strip()
+        print(f"X-Forwarded-For環境変数から取得したIP: {ip}")
+        return ip
+
+    # 方法2: 外部サービスを使用してIPを取得
+    try:
+        # 安全なIPアドレス確認サービスを使用
+        response = requests.get('https://api.ipify.org', timeout=3)
+        if response.status_code == 200:
+            ip = response.text
+            print(f"外部サービスから取得したIP: {ip}")
+            return ip
+    except Exception as e:
+        print(f"外部サービスからのIP取得エラー: {str(e)}")
+
+    # 方法3: リクエストからIPを取得（Streamlitの制約上、動作しない可能性あり）
+    try:
+        import tornado.web
+        handler = tornado.web.RequestHandler()
+        ip = handler.request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+        if ip:
+            print(f"Tornadoリクエストから取得したIP: {ip}")
+            return ip
+    except Exception as e:
+        print(f"TornadoリクエストからのIP取得エラー: {str(e)}")
+
+    # すべての方法が失敗した場合はデフォルト値を返す
+    default_ip = os.environ.get("REMOTE_ADDR", "127.0.0.1")
+    print(f"デフォルトIPを使用: {default_ip}")
+    return default_ip
+
+
+# check_ip_access 関数にデバッグ情報を追加
 def check_ip_access(whitelist_str):
     """IPアドレスのアクセス制限をチェック"""
     client_ip = get_client_ip()
+
+    # デバッグ情報
+    st.write(f"検出されたIPアドレス: {client_ip}")
+    st.write(f"アクセス許可IPリスト: {whitelist_str}")
+
+    # IPが直接一致するか確認（ホワイトリスト内に完全一致するIPがある場合）
+    if client_ip in [ip.strip() for ip in whitelist_str.split(',')]:
+        return True
+
+    # CIDR表記との照合など、より複雑なチェックは is_ip_allowed 関数に任せる
     if not is_ip_allowed(client_ip, whitelist_str):
+        st.title("アクセスが制限されています")
         st.error(f"このIPアドレス（{client_ip}）からはアクセスできません。")
+        st.info("このシステムはIPアドレスによるアクセス制限が設定されています。")
+        st.info("システム管理者にお問い合わせください。")
         return False
     return True
