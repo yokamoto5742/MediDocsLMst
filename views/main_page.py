@@ -6,7 +6,7 @@ from ui_components.navigation import render_sidebar
 
 def clear_inputs():
     st.session_state.input_text = ""
-    st.session_state.additional_info = ""
+    st.session_state.additional_info = "退院時処方\n(ここに貼り付け)"
     st.session_state.discharge_summary = ""
     st.session_state.parsed_summary = {}
     st.session_state.summary_generation_time = None
@@ -17,8 +17,13 @@ def clear_inputs():
             st.session_state[key] = ""
 
 def render_input_section():
+    # "clear_input"が初期化されていなければ初期化
     if "clear_input" not in st.session_state:
         st.session_state.clear_input = False
+
+    # additional_infoが初期化されていなければ初期値を設定
+    if "additional_info" not in st.session_state:
+        st.session_state.additional_info = "退院時処方"
 
     input_text = st.text_area(
         "カルテ記載入力",
