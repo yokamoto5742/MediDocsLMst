@@ -29,8 +29,8 @@ def render_input_section():
 
     additional_info = st.text_area(
         "追加情報入力",
-        height=50,
-        placeholder="ここを右クリックしてテキストを貼り付けてください...",
+        value="退院時処方\n(ここに貼り付け)",
+        height=70,
         key="additional_info"
     )
 
