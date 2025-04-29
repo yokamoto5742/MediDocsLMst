@@ -29,7 +29,7 @@ def render_input_section():
 
     additional_info = st.text_area(
         "追加情報入力",
-        height=100,
+        height=50,
         placeholder="ここを右クリックしてテキストを貼り付けてください...",
         key="additional_info"
     )

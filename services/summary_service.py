@@ -107,7 +107,7 @@ def process_discharge_summary(input_text, additional_info=""):
 
         summary_thread = threading.Thread(
             target=generate_summary_task,
-            args=(input_text, additional_info, selected_department, selected_model, result_queue)
+            args=(input_text, selected_department, selected_model, result_queue, additional_info)
         )
         summary_thread.start()
         elapsed_time = 0
