@@ -19,7 +19,7 @@ from utils.config import GEMINI_CREDENTIALS, CLAUDE_API_KEY, OPENAI_API_KEY, GEM
 JST = pytz.timezone('Asia/Tokyo')
 
 
-def generate_summary_task(input_text, selected_department, selected_model, result_queue):
+def generate_summary_task(input_text, selected_department, selected_model, result_queue, additional_info=""):
     try:
         if selected_model == "Claude" and CLAUDE_API_KEY:
             discharge_summary, input_tokens, output_tokens = claude_generate_discharge_summary(
@@ -78,7 +78,7 @@ def generate_summary_task(input_text, selected_department, selected_model, resul
 
 
 @handle_error
-def process_discharge_summary(input_text):
+def process_discharge_summary(input_text, additional_info=""):
     if not GEMINI_CREDENTIALS and not CLAUDE_API_KEY:
         raise APIError(MESSAGES["NO_API_CREDENTIALS"])
 
