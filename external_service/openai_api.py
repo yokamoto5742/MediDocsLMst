@@ -17,7 +17,7 @@ def initialize_openai():
         raise APIError(f"OpenAI API初期化エラー: {str(e)}")
 
 
-def create_discharge_summary_prompt(medical_text, department="default"):
+def create_discharge_summary_prompt(medical_text, additional_info="", department="default"):
     prompt_data = get_prompt_by_department(department)
 
     if not prompt_data:
@@ -27,16 +27,18 @@ def create_discharge_summary_prompt(medical_text, department="default"):
         prompt_template = prompt_data['content']
 
     prompt = f"{prompt_template}\n\n【カルテ情報】\n{medical_text}"
+    if additional_info:
+        prompt += f"\n{additional_info}"
     return prompt
 
 
-def openai_generate_discharge_summary(medical_text, department="default"):
+def openai_generate_discharge_summary(medical_text, additional_info="", department="default"):
     try:
         initialize_openai()
         model_name = OPENAI_MODEL
         client = OpenAI(api_key=OPENAI_API_KEY)
 
-        prompt = create_discharge_summary_prompt(medical_text, department)
+        prompt = create_discharge_summary_prompt(medical_text, additional_info, department)
 
         response = client.chat.completions.create(
             model=model_name,

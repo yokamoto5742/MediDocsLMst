@@ -24,12 +24,14 @@ def generate_summary_task(input_text, selected_department, selected_model, resul
         if selected_model == "Claude" and CLAUDE_API_KEY:
             discharge_summary, input_tokens, output_tokens = claude_generate_discharge_summary(
                 input_text,
+                additional_info,
                 selected_department,
             )
             model_detail = selected_model
         elif selected_model == "Gemini_Pro" and GEMINI_MODEL and GEMINI_CREDENTIALS:
             discharge_summary, input_tokens, output_tokens = gemini_generate_discharge_summary(
                 input_text,
+                additional_info,
                 selected_department,
                 GEMINI_MODEL,
             )
@@ -37,6 +39,7 @@ def generate_summary_task(input_text, selected_department, selected_model, resul
         elif selected_model == "Gemini_Flash" and GEMINI_FLASH_MODEL and GEMINI_CREDENTIALS:
             discharge_summary, input_tokens, output_tokens = gemini_generate_discharge_summary(
                 input_text,
+                additional_info,
                 selected_department,
                 GEMINI_FLASH_MODEL,
             )
@@ -45,6 +48,7 @@ def generate_summary_task(input_text, selected_department, selected_model, resul
             try:
                 discharge_summary, input_tokens, output_tokens = openai_generate_discharge_summary(
                     input_text,
+                    additional_info,
                     selected_department,
                 )
                 model_detail = selected_model
@@ -103,7 +107,7 @@ def process_discharge_summary(input_text):
 
         summary_thread = threading.Thread(
             target=generate_summary_task,
-            args=(input_text, selected_department, selected_model, result_queue)
+            args=(input_text, additional_info, selected_department, selected_model, result_queue)
         )
         summary_thread.start()
         elapsed_time = 0

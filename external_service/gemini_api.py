@@ -22,7 +22,7 @@ def initialize_gemini():
         raise APIError(f"Gemini API初期化エラー: {str(e)}")
 
 
-def create_discharge_summary_prompt(medical_text, department="default"):
+def create_discharge_summary_prompt(medical_text, additional_info="", department="default"):
     prompt_data = get_prompt_by_department(department)
 
     if not prompt_data:
@@ -32,17 +32,18 @@ def create_discharge_summary_prompt(medical_text, department="default"):
         prompt_template = prompt_data['content']
 
     prompt = f"{prompt_template}\n\n【カルテ情報】\n{medical_text}"
-
+    if additional_info:
+        prompt += f"\n{additional_info}"
     return prompt
 
 
-def gemini_generate_discharge_summary(medical_text, department="default", model_name=None):
+def gemini_generate_discharge_summary(medical_text, additional_info="", department="default", model_name=None):
     try:
         client = initialize_gemini()
         if not model_name:
             model_name = GEMINI_MODEL
 
-        prompt = create_discharge_summary_prompt(medical_text, department)
+        prompt = create_discharge_summary_prompt(medical_text, additional_info, department)
 
         if GEMINI_THINKING_BUDGET:
             response = client.models.generate_content(

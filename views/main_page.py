@@ -6,6 +6,7 @@ from ui_components.navigation import render_sidebar
 
 def clear_inputs():
     st.session_state.input_text = ""
+    st.session_state.additional_info = ""
     st.session_state.discharge_summary = ""
     st.session_state.parsed_summary = {}
     st.session_state.summary_generation_time = None
@@ -24,6 +25,13 @@ def render_input_section():
         height=100,
         placeholder="ここを右クリックしてテキストを貼り付けてください...",
         key="input_text"
+    )
+
+    additional_info = st.text_area(
+        "追加情報入力",
+        height=100,
+        placeholder="ここを右クリックしてテキストを貼り付けてください...",
+        key="additional_info"
     )
 
     col1, col2 = st.columns(2)
