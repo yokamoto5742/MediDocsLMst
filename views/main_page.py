@@ -42,7 +42,7 @@ def render_summary_results():
         if st.session_state.parsed_summary:
             tabs = st.tabs([
                 "全文", "入院期間", "現病歴", "入院時検査",
-                "入院中の治療経過", "退院申し送り", "禁忌/アレルギー"
+                "入院中の治療経過", "退院申し送り", "備考"
             ])
 
             with tabs[0]:
@@ -52,7 +52,7 @@ def render_summary_results():
                         height=150
                         )
 
-            sections = ["入院期間", "現病歴", "入院時検査", "入院中の治療経過", "退院申し送り", "禁忌/アレルギー"]
+            sections = ["入院期間", "現病歴", "入院時検査", "入院中の治療経過", "退院申し送り", "備考"]
             for i, section in enumerate(sections, 1):
                 with tabs[i]:
                     section_content = st.session_state.parsed_summary.get(section, "")

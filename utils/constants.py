@@ -30,7 +30,7 @@ MESSAGES = {
 }
 
 DEFAULT_DEPARTMENTS = ["内科", "消化器内科", "整形外科", "眼科"]
-DEFAULT_SECTION_NAMES = ["入院期間", "現病歴", "入院時検査", "入院中の治療経過", "退院申し送り", "禁忌/アレルギー"]
+DEFAULT_SECTION_NAMES = ["入院期間", "現病歴", "入院時検査", "入院中の治療経過", "退院申し送り", "備考"]
 
 APP_TYPE = "discharge_summary"
 DOCUMENT_NAME = "退院時サマリ"
