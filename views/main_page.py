@@ -17,7 +17,6 @@ def clear_inputs():
             st.session_state[key] = ""
 
 def render_input_section():
-    # "clear_input"が初期化されていなければ初期化
     if "clear_input" not in st.session_state:
         st.session_state.clear_input = False
 
