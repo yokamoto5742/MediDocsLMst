@@ -20,7 +20,7 @@ def render_input_section():
         st.session_state.clear_input = False
 
     input_text = st.text_area(
-        "カルテ情報入力",
+        "カルテ記載入力",
         height=100,
         placeholder="ここを右クリックしてテキストを貼り付けてください...",
         key="input_text"
