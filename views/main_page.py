@@ -39,7 +39,7 @@ def render_input_section():
     col1, col2 = st.columns(2)
 
     with col1:
-        if st.button("退院時サマリ作成", type="primary"):
+        if st.button("サマリ作成", type="primary"):
             process_discharge_summary(input_text)
 
     with col2:
