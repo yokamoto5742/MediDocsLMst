@@ -1,6 +1,5 @@
 import os
 
-import OpenAI
 from openai import OpenAI
 
 from utils.config import OPENAI_API_KEY, OPENAI_MODEL, get_config

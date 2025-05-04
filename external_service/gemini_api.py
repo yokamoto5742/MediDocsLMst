@@ -1,14 +1,13 @@
 import json
 import os
 
-import genai
 from google import genai
 from google.genai import types
 
 from utils.config import GEMINI_CREDENTIALS, GEMINI_MODEL, GEMINI_THINKING_BUDGET, get_config
 from utils.constants import MESSAGES
 from utils.exceptions import APIError
-from utils.prompt_manager import get_prompt_by_departmentr
+from utils.prompt_manager import get_prompt_by_department
 
 
 def initialize_gemini():
