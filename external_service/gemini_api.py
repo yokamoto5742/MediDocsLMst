@@ -1,13 +1,14 @@
 import json
 import os
 
+import genai
 from google import genai
 from google.genai import types
 
-from utils.config import get_config, GEMINI_CREDENTIALS, GEMINI_MODEL, GEMINI_THINKING_BUDGET
+from utils.config import GEMINI_CREDENTIALS, GEMINI_MODEL, GEMINI_THINKING_BUDGET, get_config
 from utils.constants import MESSAGES
-from utils.prompt_manager import get_prompt_by_department
 from utils.exceptions import APIError
+from utils.prompt_manager import get_prompt_by_departmentr
 
 
 def initialize_gemini():
@@ -22,7 +23,7 @@ def initialize_gemini():
         raise APIError(f"Gemini API初期化エラー: {str(e)}")
 
 
-def create_discharge_summary_prompt(medical_text, additional_info="", department="default"):
+def create_summary_prompt(medical_text, additional_info="", department="default"):
     prompt_data = get_prompt_by_department(department)
 
     if not prompt_data:
@@ -37,13 +38,13 @@ def create_discharge_summary_prompt(medical_text, additional_info="", department
     return prompt
 
 
-def gemini_generate_discharge_summary(medical_text, additional_info="", department="default", model_name=None):
+def gemini_generate_summary(medical_text, additional_info="", department="default", model_name=None):
     try:
         client = initialize_gemini()
         if not model_name:
             model_name = GEMINI_MODEL
 
-        prompt = create_discharge_summary_prompt(medical_text, additional_info, department)
+        prompt = create_summary_prompt(medical_text, additional_info, department)
 
         if GEMINI_THINKING_BUDGET:
             response = client.models.generate_content(

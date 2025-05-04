@@ -6,9 +6,9 @@ import pytz
 
 import streamlit as st
 
-from external_service.claude_api import claude_generate_discharge_summary
-from external_service.gemini_api import gemini_generate_discharge_summary
-from external_service.openai_api import openai_generate_discharge_summary
+from external_service.claude_api import claude_generate_summary
+from external_service.gemini_api import gemini_generate_summary
+from external_service.openai_api import openai_generate_summary
 from utils.constants import APP_TYPE, DOCUMENT_NAME, MESSAGES
 from utils.error_handlers import handle_error
 from utils.exceptions import APIError
@@ -22,14 +22,14 @@ JST = pytz.timezone('Asia/Tokyo')
 def generate_summary_task(input_text, selected_department, selected_model, result_queue, additional_info=""):
     try:
         if selected_model == "Claude" and CLAUDE_API_KEY:
-            discharge_summary, input_tokens, output_tokens = claude_generate_discharge_summary(
+            discharge_summary, input_tokens, output_tokens = claude_generate_summary(
                 input_text,
                 additional_info,
                 selected_department,
             )
             model_detail = selected_model
         elif selected_model == "Gemini_Pro" and GEMINI_MODEL and GEMINI_CREDENTIALS:
-            discharge_summary, input_tokens, output_tokens = gemini_generate_discharge_summary(
+            discharge_summary, input_tokens, output_tokens = gemini_generate_summary(
                 input_text,
                 additional_info,
                 selected_department,
@@ -37,7 +37,7 @@ def generate_summary_task(input_text, selected_department, selected_model, resul
             )
             model_detail = GEMINI_MODEL
         elif selected_model == "Gemini_Flash" and GEMINI_FLASH_MODEL and GEMINI_CREDENTIALS:
-            discharge_summary, input_tokens, output_tokens = gemini_generate_discharge_summary(
+            discharge_summary, input_tokens, output_tokens = gemini_generate_summary(
                 input_text,
                 additional_info,
                 selected_department,
@@ -46,7 +46,7 @@ def generate_summary_task(input_text, selected_department, selected_model, resul
             model_detail = GEMINI_FLASH_MODEL
         elif selected_model == "GPT4.1" and OPENAI_API_KEY:
             try:
-                discharge_summary, input_tokens, output_tokens = openai_generate_discharge_summary(
+                discharge_summary, input_tokens, output_tokens = openai_generate_summary(
                     input_text,
                     additional_info,
                     selected_department,
