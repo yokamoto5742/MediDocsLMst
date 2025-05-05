@@ -1,35 +1,13 @@
 import streamlit as st
-from utils.auth import get_current_user, logout, password_change_ui, can_edit_prompts
-from utils.prompt_manager import get_all_departments
-from utils.config import GEMINI_MODEL, GEMINI_CREDENTIALS, GEMINI_FLASH_MODEL, CLAUDE_API_KEY, OPENAI_API_KEY, OPENAI_MODEL, SELECTED_AI_MODEL
 
-def toggle_password_change():
-    st.session_state.show_password_change = not st.session_state.show_password_change
+from utils.auth import get_current_user, logout, password_change_ui, can_edit_prompts
+from utils.config import GEMINI_MODEL, GEMINI_CREDENTIALS, GEMINI_FLASH_MODEL, CLAUDE_API_KEY, OPENAI_API_KEY, OPENAI_MODEL, SELECTED_AI_MODEL
+from utils.prompt_manager import get_all_departments
 
 def change_page(page):
     st.session_state.current_page = page
 
 def render_sidebar():
-    user = get_current_user()
-    if user:
-        st.sidebar.success(f"ログイン中: {user['username']}")
-
-        col1, col2 = st.sidebar.columns(2)
-        with col1:
-            if st.button("パスワード変更", key="show_password_change_button"):
-                toggle_password_change()
-        with col2:
-            if st.button("ログアウト"):
-                logout()
-                st.rerun()
-
-        if st.session_state.show_password_change:
-            with st.sidebar:
-                password_change_ui()
-                if st.button("キャンセル"):
-                    st.session_state.show_password_change = False
-                    st.rerun()
-
     departments = ["default"] + get_all_departments()
     selected_dept = st.sidebar.selectbox(
         "診療科",
@@ -76,6 +54,7 @@ def render_sidebar():
         if st.sidebar.button("診療科管理", key="department_management"):
             change_page("department_edit")
             st.rerun()
+
         if st.sidebar.button("プロンプト管理", key="prompt_management"):
             change_page("prompt_edit")
             st.rerun()
