@@ -112,7 +112,7 @@ def process_discharge_summary(input_text, additional_info=""):
         summary_thread.start()
         elapsed_time = 0
 
-        with st.spinner("退院時サマリを作成中..."):
+        with st.spinner("サマリ作成中..."):
             status_placeholder.text(f"⏱️ 経過時間: {elapsed_time}秒")
             while summary_thread.is_alive():
                 time.sleep(1)
