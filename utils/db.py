@@ -4,6 +4,9 @@ from pymongo import MongoClient
 
 from utils.config import MONGODB_URI
 from utils.exceptions import DatabaseError
+from utils.env_loader import load_environment_variables
+
+load_environment_variables()
 
 
 class DatabaseManager:
@@ -48,8 +51,16 @@ class DatabaseManager:
         return db[collection_name]
 
 
+def get_users_collection():
+    try:
+        db_manager = DatabaseManager.get_instance()
+        collection_name = os.environ.get("MONGODB_USERS_COLLECTION", "users")
+        return db_manager.get_collection(collection_name)
+    except Exception as e:
+        raise DatabaseError(f"ユーザーコレクションの取得に失敗しました: {str(e)}")
+
+
 def get_usage_collection():
-    """使用統計を保存するコレクションを取得"""
     try:
         db_manager = DatabaseManager.get_instance()
         collection_name = "summary_usage"
