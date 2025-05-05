@@ -1,13 +1,11 @@
 import streamlit as st
-from utils.exceptions import AppError, AuthError, APIError, DatabaseError
+
+from utils.exceptions import AppError, APIError, DatabaseError
 
 def handle_error(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except AuthError as e:
-            st.error(f"認証エラー: {str(e)}")
-            return None
         except APIError as e:
             st.error(f"API接続エラー: {str(e)}")
             return None
