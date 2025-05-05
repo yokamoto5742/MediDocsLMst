@@ -1,24 +1,12 @@
 MESSAGES = {
-    # 認証関連
-    "LOGIN_REQUIRED": "ログインが必要です",
-    "USER_EXISTS": "このユーザー名は既に使用されています",
-    "REGISTRATION_SUCCESS": "ユーザー登録が完了しました",
-    "INVALID_CREDENTIALS": "ユーザー名またはパスワードが正しくありません",
-    "PASSWORD_CHANGED": "パスワードが正常に変更されました",
-    "PASSWORD_MISMATCH": "パスワードが一致しません",
-    "CURRENT_PASSWORD_WRONG": "現在のパスワードが正しくありません",
-
-    # プロンプト関連
     "PROMPT_UPDATED": "プロンプトを更新しました",
     "PROMPT_CREATED": "プロンプトを新規作成しました",
     "PROMPT_DELETED": "プロンプトを削除しました",
 
-    # 診療科関連
     "DEPARTMENT_EXISTS": "この診療科は既に存在します",
     "DEPARTMENT_CREATED": "診療科を登録しました",
     "DEPARTMENT_DELETED": "診療科を削除しました",
 
-    # エラーメッセージ
     "FIELD_REQUIRED": "すべての項目を入力してください",
     "NO_INPUT": "⚠️ カルテ情報を入力してください",
     "INPUT_TOO_SHORT": "⚠️ 入力テキストが短すぎます",
