@@ -1,14 +1,11 @@
 import os
 
-import bcrypt
-import requests
-import streamlit as st
 from pymongo import MongoClient
 
-from utils.config import get_config, MONGODB_URI, REQUIRE_LOGIN
+from utils.config import MONGODB_URI
 from utils.db import DatabaseManager
 from utils.env_loader import load_environment_variables
-from utils.exceptions import AuthError, DatabaseError
+from utils.exceptions import DatabaseError
 
 load_environment_variables()
 
