@@ -1,6 +1,5 @@
 import streamlit as st
-from utils.auth import login_ui, require_login, check_ip_access
-from utils.config import REQUIRE_LOGIN, IP_CHECK_ENABLED, IP_WHITELIST
+
 from utils.env_loader import load_environment_variables
 from utils.error_handlers import handle_error
 from utils.prompt_manager import initialize_database
@@ -11,7 +10,6 @@ from views.main_page import main_page_app
 
 load_environment_variables()
 initialize_database()
-require_login_setting = REQUIRE_LOGIN
 
 st.set_page_config(
     page_title="退院時サマリ作成アプリ",
@@ -53,15 +51,7 @@ def main_app():
 
 @handle_error
 def main():
-    if IP_CHECK_ENABLED:
-        if not check_ip_access(IP_WHITELIST):
-            st.stop()
-
-    if require_login_setting:
-        if require_login():
-            main_app()
-    else:
-        main_app()
+    main_app()
 
 if __name__ == "__main__":
     main()
