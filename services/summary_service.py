@@ -21,45 +21,51 @@ JST = pytz.timezone('Asia/Tokyo')
 
 def generate_summary_task(input_text, selected_department, selected_model, result_queue, additional_info=""):
     try:
-        if selected_model == "Claude" and CLAUDE_API_KEY:
-            discharge_summary, input_tokens, output_tokens = claude_generate_summary(
-                input_text,
-                additional_info,
-                selected_department,
-            )
-            model_detail = selected_model
-        elif selected_model == "Gemini_Pro" and GEMINI_MODEL and GEMINI_CREDENTIALS:
-            discharge_summary, input_tokens, output_tokens = gemini_generate_summary(
-                input_text,
-                additional_info,
-                selected_department,
-                GEMINI_MODEL,
-            )
-            model_detail = GEMINI_MODEL
-        elif selected_model == "Gemini_Flash" and GEMINI_FLASH_MODEL and GEMINI_CREDENTIALS:
-            discharge_summary, input_tokens, output_tokens = gemini_generate_summary(
-                input_text,
-                additional_info,
-                selected_department,
-                GEMINI_FLASH_MODEL,
-            )
-            model_detail = GEMINI_FLASH_MODEL
-        elif selected_model == "GPT4.1" and OPENAI_API_KEY:
-            try:
-                discharge_summary, input_tokens, output_tokens = openai_generate_summary(
+        match selected_model:
+            case "Claude" if CLAUDE_API_KEY:
+                discharge_summary, input_tokens, output_tokens = claude_generate_summary(
                     input_text,
                     additional_info,
                     selected_department,
                 )
                 model_detail = selected_model
-            except Exception as e:
-                error_str = str(e)
-                if "insufficient_quota" in error_str or "exceeded your current quota" in error_str:
-                    raise APIError("OpenAI APIのクォータを超過しています。請求情報を確認するか、管理者に連絡してください。")
-                else:
-                    raise e
-        else:
-            raise APIError(MESSAGES["NO_API_CREDENTIALS"])
+
+            case "Gemini_Pro" if GEMINI_MODEL and GEMINI_CREDENTIALS:
+                discharge_summary, input_tokens, output_tokens = gemini_generate_summary(
+                    input_text,
+                    additional_info,
+                    selected_department,
+                    GEMINI_MODEL,
+                )
+                model_detail = GEMINI_MODEL
+
+            case "Gemini_Flash" if GEMINI_FLASH_MODEL and GEMINI_CREDENTIALS:
+                discharge_summary, input_tokens, output_tokens = gemini_generate_summary(
+                    input_text,
+                    additional_info,
+                    selected_department,
+                    GEMINI_FLASH_MODEL,
+                )
+                model_detail = GEMINI_FLASH_MODEL
+
+            case "GPT4.1" if OPENAI_API_KEY:
+                try:
+                    discharge_summary, input_tokens, output_tokens = openai_generate_summary(
+                        input_text,
+                        additional_info,
+                        selected_department,
+                    )
+                    model_detail = selected_model
+                except Exception as e:
+                    error_str = str(e)
+                    if "insufficient_quota" in error_str or "exceeded your current quota" in error_str:
+                        raise APIError(
+                            "OpenAI APIのクォータを超過しています。請求情報を確認するか、管理者に連絡してください。")
+                    else:
+                        raise e
+
+            case _:
+                raise APIError(MESSAGES["NO_API_CREDENTIALS"])
 
         discharge_summary = format_discharge_summary(discharge_summary)
         parsed_summary = parse_discharge_summary(discharge_summary)
@@ -78,8 +84,8 @@ def generate_summary_task(input_text, selected_department, selected_model, resul
 
 
 @handle_error
-def process_discharge_summary(input_text, additional_info=""):
-    if not GEMINI_CREDENTIALS and not CLAUDE_API_KEY:
+def process_summary(input_text, additional_info=""):
+    if not GEMINI_CREDENTIALS and not CLAUDE_API_KEY and not OPENAI_API_KEY:
         raise APIError(MESSAGES["NO_API_CREDENTIALS"])
 
     if not input_text:
@@ -107,7 +113,13 @@ def process_discharge_summary(input_text, additional_info=""):
 
         summary_thread = threading.Thread(
             target=generate_summary_task,
-            args=(input_text, selected_department, selected_model, result_queue, additional_info)
+            args=(
+                input_text,
+                selected_department,
+                selected_model,
+                result_queue,
+                additional_info
+            ),
         )
         summary_thread.start()
         elapsed_time = 0

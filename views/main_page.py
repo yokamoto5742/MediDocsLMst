@@ -1,6 +1,6 @@
 import streamlit as st
 from utils.error_handlers import handle_error
-from services.summary_service import process_discharge_summary
+from services.summary_service import process_summary
 from utils.text_processor import parse_discharge_summary
 from ui_components.navigation import render_sidebar
 
@@ -40,7 +40,7 @@ def render_input_section():
 
     with col1:
         if st.button("サマリ作成", type="primary"):
-            process_discharge_summary(input_text)
+            process_summary(input_text)
 
     with col2:
         if st.button("テキストをクリア", on_click=clear_inputs):
