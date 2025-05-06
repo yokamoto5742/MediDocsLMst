@@ -28,9 +28,7 @@ def create_summary_prompt(medical_text, additional_info="", department="default"
     else:
         prompt_template = prompt_data['content']
 
-    prompt = f"{prompt_template}\n\n【カルテ情報】\n{medical_text}"
-    if additional_info:
-        prompt += f"\n{additional_info}"
+    prompt = f"{prompt_template}\n\n【カルテ情報】\n{additional_info}\n{medical_text}"
     return prompt
 
 

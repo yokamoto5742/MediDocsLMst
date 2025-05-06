@@ -187,7 +187,6 @@ def initialize_default_prompt():
 
 
 def get_prompt_by_department(department="default"):
-    """指定された診療科のプロンプトを取得"""
     try:
         prompt_collection = get_prompt_collection()
         prompt = prompt_collection.find_one({"department": department})
