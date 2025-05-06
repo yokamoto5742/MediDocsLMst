@@ -40,7 +40,7 @@ def render_input_section():
 
     with col1:
         if st.button("サマリ作成", type="primary"):
-            process_summary(input_text)
+            process_summary(input_text, additional_info)
 
     with col2:
         if st.button("テキストをクリア", on_click=clear_inputs):
