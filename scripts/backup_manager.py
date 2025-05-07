@@ -5,7 +5,7 @@ from pathlib import Path
 
 from utils.env_loader import load_environment_variables
 from utils.config import get_config
-from dataebase.db import DatabaseManager
+from database.db import DatabaseManager
 from utils.prompt_manager import get_all_departments, get_all_prompts, get_department_collection, get_prompt_collection
 
 
