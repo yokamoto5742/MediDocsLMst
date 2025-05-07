@@ -4,9 +4,9 @@ import pytz
 import pandas as pd
 import streamlit as st
 
+from database.db import get_usage_collection
 from utils.constants import DOCUMENT_NAME_OPTIONS
 from utils.error_handlers import handle_error
-from database.db import get_usage_collection
 from ui_components.navigation import change_page
 
 JST = pytz.timezone('Asia/Tokyo')
