@@ -1,5 +1,6 @@
 import streamlit as st
 
+from ui_components.navigation import load_user_settings
 from utils.env_loader import load_environment_variables
 from utils.error_handlers import handle_error
 from utils.prompt_manager import initialize_database
@@ -25,7 +26,10 @@ if "parsed_summary" not in st.session_state:
 if "show_password_change" not in st.session_state:
     st.session_state.show_password_change = False
 if "selected_department" not in st.session_state:
-    st.session_state.selected_department = "default"
+    saved_dept, saved_model = load_user_settings()
+    st.session_state.selected_department = saved_dept if saved_dept else "default"
+    if saved_model:
+        st.session_state.selected_model = saved_model
 if "current_page" not in st.session_state:
     st.session_state.current_page = "main"
 if "success_message" not in st.session_state:

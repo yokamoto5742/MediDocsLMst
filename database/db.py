@@ -67,3 +67,11 @@ def get_usage_collection():
         return db_manager.get_collection(collection_name)
     except Exception as e:
         raise DatabaseError(f"使用状況コレクションの取得に失敗しました: {str(e)}")
+
+def get_settings_collection():
+    try:
+        db_manager = DatabaseManager.get_instance()
+        collection_name = "app_settings"
+        return db_manager.get_collection(collection_name)
+    except Exception as e:
+        raise DatabaseError(f"設定コレクションの取得に失敗しました: {str(e)}")

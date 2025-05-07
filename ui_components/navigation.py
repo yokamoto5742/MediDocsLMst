@@ -1,13 +1,22 @@
+import datetime
+
 import streamlit as st
 
 from utils.config import GEMINI_MODEL, GEMINI_CREDENTIALS, GEMINI_FLASH_MODEL, CLAUDE_API_KEY, OPENAI_API_KEY, OPENAI_MODEL, SELECTED_AI_MODEL
+from database.db import get_settings_collection
 from utils.prompt_manager import get_all_departments
 
 def change_page(page):
     st.session_state.current_page = page
 
+
 def render_sidebar():
     departments = ["default"] + get_all_departments()
+
+    # 前の選択状態を保存
+    previous_dept = st.session_state.selected_department
+    previous_model = getattr(st.session_state, "selected_model", None)
+
     selected_dept = st.sidebar.selectbox(
         "診療科",
         departments,
@@ -46,6 +55,25 @@ def render_sidebar():
     elif len(st.session_state.available_models) == 1:
         st.session_state.selected_model = st.session_state.available_models[0]
 
+    # 設定が変更されたら保存
+    if previous_dept != st.session_state.selected_department or previous_model != st.session_state.selected_model:
+        save_user_settings(st.session_state.selected_department, st.session_state.selected_model)
+
+    st.sidebar.markdown("・入力および出力テキストは保存されません")
+    st.sidebar.markdown("・出力結果は必ず確認してください")
+
+    if st.sidebar.button("診療科管理", key="sidebar_department_management"):
+        change_page("department_edit")
+        st.rerun()
+
+    if st.sidebar.button("プロンプト管理", key="sidebar_prompt_management"):
+        change_page("prompt_edit")
+        st.rerun()
+
+    if st.sidebar.button("統計情報", key="sidebar_usage_statistics"):
+        change_page("statistics")
+        st.rerun()
+
     st.sidebar.markdown("・入力および出力テキストは保存されません")
     st.sidebar.markdown("・出力結果は必ず確認してください")
 
@@ -60,3 +88,31 @@ def render_sidebar():
     if st.sidebar.button("統計情報", key="usage_statistics"):
         change_page("statistics")
         st.rerun()
+
+from database.db import get_settings_collection
+
+def save_user_settings(department, model):
+    try:
+        settings_collection = get_settings_collection()
+        settings_collection.update_one(
+            {"setting_id": "user_preferences"},
+            {"$set": {
+                "selected_department": department,
+                "selected_model": model,
+                "updated_at": datetime.datetime.now()
+            }},
+            upsert=True
+        )
+    except Exception as e:
+        print(f"設定の保存に失敗しました: {str(e)}")
+
+def load_user_settings():
+    try:
+        settings_collection = get_settings_collection()
+        settings = settings_collection.find_one({"setting_id": "user_preferences"})
+        if settings:
+            return settings.get("selected_department"), settings.get("selected_model")
+        return None, None
+    except Exception as e:
+        print(f"設定の読み込みに失敗しました: {str(e)}")
+        return None, None
