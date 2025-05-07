@@ -2,7 +2,7 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 
-from utils.db import DatabaseManager
+from dataebase.db import DatabaseManager
 from utils.exceptions import DatabaseError
 
 

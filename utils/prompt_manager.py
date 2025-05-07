@@ -5,7 +5,7 @@ from pymongo import MongoClient
 
 from utils.config import get_config, MONGODB_URI
 from utils.constants import DEFAULT_DEPARTMENTS, MESSAGES
-from utils.db import DatabaseManager
+from dataebase.db import DatabaseManager
 from utils.env_loader import load_environment_variables
 from utils.exceptions import DatabaseError, AppError
 
