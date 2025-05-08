@@ -4,7 +4,7 @@ import streamlit as st
 
 from database.db import get_settings_collection
 from utils.config import GEMINI_MODEL, GEMINI_CREDENTIALS, GEMINI_FLASH_MODEL, CLAUDE_API_KEY, OPENAI_API_KEY, OPENAI_MODEL, SELECTED_AI_MODEL
-from utils.prompt_manager import get_all_departments
+from utils.prompt_manager import get_all_departments, get_department_by_name
 
 def change_page(page):
     st.session_state.current_page = page
@@ -25,14 +25,16 @@ def render_sidebar():
         key="department_selector"
     )
 
+    # 選択科が変わった場合
     if selected_dept != previous_dept:
+        st.session_state.selected_department = selected_dept
         if selected_dept != "default":
             dept_data = get_department_by_name(selected_dept)
             if dept_data and "default_model" in dept_data:
                 default_model = dept_data["default_model"]
                 st.session_state.selected_model = default_model
-
-    st.session_state.selected_department = selected_dept
+    else:
+        st.session_state.selected_department = selected_dept
 
     st.session_state.available_models = []
     if GEMINI_MODEL and GEMINI_CREDENTIALS:
@@ -81,22 +83,6 @@ def render_sidebar():
         change_page("statistics")
         st.rerun()
 
-    st.sidebar.markdown("・入力および出力テキストは保存されません")
-    st.sidebar.markdown("・出力結果は必ず確認してください")
-
-    if st.sidebar.button("診療科管理", key="department_management"):
-        change_page("department_edit")
-        st.rerun()
-
-    if st.sidebar.button("プロンプト管理", key="prompt_management"):
-        change_page("prompt_edit")
-        st.rerun()
-
-    if st.sidebar.button("統計情報", key="usage_statistics"):
-        change_page("statistics")
-        st.rerun()
-
-from database.db import get_settings_collection
 
 def save_user_settings(department, model):
     try:
