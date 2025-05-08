@@ -2,8 +2,8 @@ import datetime
 
 import streamlit as st
 
-from utils.config import GEMINI_MODEL, GEMINI_CREDENTIALS, GEMINI_FLASH_MODEL, CLAUDE_API_KEY, OPENAI_API_KEY, OPENAI_MODEL, SELECTED_AI_MODEL
 from database.db import get_settings_collection
+from utils.config import GEMINI_MODEL, GEMINI_CREDENTIALS, GEMINI_FLASH_MODEL, CLAUDE_API_KEY, OPENAI_API_KEY, OPENAI_MODEL, SELECTED_AI_MODEL
 from utils.prompt_manager import get_all_departments
 
 def change_page(page):
@@ -24,6 +24,14 @@ def render_sidebar():
         format_func=lambda x: "全科共通" if x == "default" else x,
         key="department_selector"
     )
+
+    if selected_dept != previous_dept:
+        if selected_dept != "default":
+            dept_data = get_department_by_name(selected_dept)
+            if dept_data and "default_model" in dept_data:
+                default_model = dept_data["default_model"]
+                st.session_state.selected_model = default_model
+
     st.session_state.selected_department = selected_dept
 
     st.session_state.available_models = []
@@ -55,7 +63,6 @@ def render_sidebar():
     elif len(st.session_state.available_models) == 1:
         st.session_state.selected_model = st.session_state.available_models[0]
 
-    # 設定が変更されたら保存
     if previous_dept != st.session_state.selected_department or previous_model != st.session_state.selected_model:
         save_user_settings(st.session_state.selected_department, st.session_state.selected_model)
 
