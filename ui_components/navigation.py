@@ -13,28 +13,22 @@ def change_page(page):
 def render_sidebar():
     departments = ["default"] + get_all_departments()
 
-    # 前の選択状態を保存
     previous_dept = st.session_state.selected_department
     previous_model = getattr(st.session_state, "selected_model", None)
+
+    try:
+        index = departments.index(st.session_state.selected_department)
+    except ValueError:
+        index = 0
+        st.session_state.selected_department = departments[0]  # "default" に設定
 
     selected_dept = st.sidebar.selectbox(
         "診療科",
         departments,
-        index=departments.index(st.session_state.selected_department),
+        index=index,
         format_func=lambda x: "全科共通" if x == "default" else x,
         key="department_selector"
     )
-
-    # 選択科が変わった場合
-    if selected_dept != previous_dept:
-        st.session_state.selected_department = selected_dept
-        if selected_dept != "default":
-            dept_data = get_department_by_name(selected_dept)
-            if dept_data and "default_model" in dept_data:
-                default_model = dept_data["default_model"]
-                st.session_state.selected_model = default_model
-    else:
-        st.session_state.selected_department = selected_dept
 
     st.session_state.available_models = []
     if GEMINI_MODEL and GEMINI_CREDENTIALS:
@@ -46,27 +40,51 @@ def render_sidebar():
     if OPENAI_API_KEY:
         st.session_state.available_models.append("GPT4.1")
 
+    st.session_state.selected_department = selected_dept
+
+    if selected_dept != previous_dept:
+        if selected_dept == "default":
+            if "Gemini_Pro" in st.session_state.available_models:
+                st.session_state.selected_model = "Gemini_Pro"
+            elif st.session_state.available_models:
+                st.session_state.selected_model = st.session_state.available_models[0]
+        else:
+            dept_data = get_department_by_name(selected_dept)
+            if dept_data and "default_model" in dept_data and dept_data["default_model"]:
+                if dept_data["default_model"] in st.session_state.available_models:
+                    st.session_state.selected_model = dept_data["default_model"]
+
+        save_user_settings(selected_dept, st.session_state.selected_model)
+        st.rerun()
+
     if len(st.session_state.available_models) > 1:
         if "selected_model" not in st.session_state:
-            default_model = SELECTED_AI_MODEL
-            if default_model not in st.session_state.available_models and st.session_state.available_models:
+            if "Gemini_Pro" in st.session_state.available_models:
+                default_model = "Gemini_Pro"
+            else:
                 default_model = st.session_state.available_models[0]
             st.session_state.selected_model = default_model
+
+        try:
+            model_index = st.session_state.available_models.index(st.session_state.selected_model)
+        except (ValueError, AttributeError):
+            model_index = 0
+            if st.session_state.available_models:
+                st.session_state.selected_model = st.session_state.available_models[0]
 
         selected_model = st.sidebar.selectbox(
             "AIモデル",
             st.session_state.available_models,
-            index=st.session_state.available_models.index(
-                st.session_state.selected_model) if st.session_state.selected_model in st.session_state.available_models else 0,
+            index=model_index,
             key="model_selector"
         )
-        st.session_state.selected_model = selected_model
+
+        if selected_model != previous_model:
+            st.session_state.selected_model = selected_model
+            save_user_settings(st.session_state.selected_department, st.session_state.selected_model)
 
     elif len(st.session_state.available_models) == 1:
         st.session_state.selected_model = st.session_state.available_models[0]
-
-    if previous_dept != st.session_state.selected_department or previous_model != st.session_state.selected_model:
-        save_user_settings(st.session_state.selected_department, st.session_state.selected_model)
 
     st.sidebar.markdown("・入力および出力テキストは保存されません")
     st.sidebar.markdown("・出力結果は必ず確認してください")
