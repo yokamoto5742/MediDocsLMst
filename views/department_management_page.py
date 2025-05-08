@@ -1,4 +1,5 @@
 import streamlit as st
+
 from utils.error_handlers import handle_error
 from utils.exceptions import AppError
 from utils.prompt_manager import get_all_departments, create_department, delete_department, update_department_order
@@ -68,11 +69,10 @@ def department_management_ui():
                             st.rerun()
 
         with col3:
-            if dept not in ["内科"]:
-                if st.button("削除", key=f"delete_{dept}"):
-                    success, message = delete_department(dept)
-                    if success:
-                        st.success(message)
-                    else:
-                        raise AppError(message)
-                    st.rerun()
+            if st.button("削除", key=f"delete_{dept}"):
+                success, message = delete_department(dept)
+                if success:
+                    st.success(message)
+                else:
+                    raise AppError(message)
+                st.rerun()

@@ -5,9 +5,9 @@ from utils.env_loader import load_environment_variables
 from utils.error_handlers import handle_error
 from utils.prompt_manager import initialize_database
 from views.department_management_page import department_management_ui
-from views.prompt_management_page import prompt_management_ui
-from views.statistics_page import usage_statistics_ui
 from views.main_page import main_page_app
+from views.statistics_page import usage_statistics_ui
+from views.prompt_management_page import prompt_management_ui
 
 load_environment_variables()
 initialize_database()
@@ -18,13 +18,10 @@ st.set_page_config(
     layout="wide"
 )
 
-# セッション状態の初期化
 if "discharge_summary" not in st.session_state:
     st.session_state.discharge_summary = ""
 if "parsed_summary" not in st.session_state:
     st.session_state.parsed_summary = {}
-if "show_password_change" not in st.session_state:
-    st.session_state.show_password_change = False
 if "selected_department" not in st.session_state:
     saved_dept, saved_model = load_user_settings()
     st.session_state.selected_department = saved_dept if saved_dept else "default"
@@ -39,6 +36,7 @@ if "available_models" not in st.session_state:
 if "summary_generation_time" not in st.session_state:
     st.session_state.summary_generation_time = None
 
+
 @handle_error
 def main_app():
     if st.session_state.current_page == "prompt_edit":
@@ -52,6 +50,7 @@ def main_app():
         return
 
     main_page_app()
+
 
 @handle_error
 def main():

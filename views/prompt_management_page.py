@@ -1,8 +1,10 @@
 import streamlit as st
+
 from utils.error_handlers import handle_error
 from utils.exceptions import AppError
 from utils.prompt_manager import get_all_departments, get_prompt_by_department, create_or_update_prompt, delete_prompt
 from ui_components.navigation import change_page
+
 
 @handle_error
 def prompt_management_ui():

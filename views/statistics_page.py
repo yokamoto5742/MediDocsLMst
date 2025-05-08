@@ -153,7 +153,6 @@ def usage_statistics_ui():
             "AIモデル": model_info,
             "入力トークン": record["input_tokens"],
             "出力トークン": record["output_tokens"],
-
             "処理時間(秒)": round(record["processing_time"]),
         })
 
