@@ -1,0 +1,37 @@
+[
+  {
+    "name": "消化器内科",
+    "created_at": "2025-03-26 19:25:28.868000",
+    "updated_at": "2025-05-08 17:34:19.267000",
+    "order": 3,
+    "default_model": "Gemini_Pro"
+  },
+  {
+    "name": "整形外科",
+    "created_at": "2025-03-26 19:25:28.868000",
+    "updated_at": "2025-05-08 17:34:23.231000",
+    "order": 4,
+    "default_model": "Gemini_Pro"
+  },
+  {
+    "name": "内科",
+    "order": 2,
+    "created_at": "2025-04-25 07:10:03.051000",
+    "updated_at": "2025-05-08 17:34:14.611000",
+    "default_model": "Gemini_Pro"
+  },
+  {
+    "name": "主治医意見書",
+    "order": 5,
+    "created_at": "2025-05-02 23:51:06.277000",
+    "updated_at": "2025-05-08 17:34:27.156000",
+    "default_model": "Claude"
+  },
+  {
+    "name": "訪問看護指示書",
+    "order": 6,
+    "created_at": "2025-05-04 23:14:40.698000",
+    "updated_at": "2025-05-08 17:34:30.430000",
+    "default_model": "Claude"
+  }
+]
