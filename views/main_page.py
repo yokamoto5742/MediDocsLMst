@@ -59,7 +59,6 @@ def render_summary_results():
             ])
 
             with tabs[0]:
-                st.subheader("全文")
                 st.code(st.session_state.discharge_summary,
                         language=None,
                         height=150
@@ -69,7 +68,6 @@ def render_summary_results():
             for i, section in enumerate(sections, 1):
                 with tabs[i]:
                     section_content = st.session_state.parsed_summary.get(section, "")
-                    st.subheader(section)
                     st.code(section_content,
                             language=None,
                             height=150
