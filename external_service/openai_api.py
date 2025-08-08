@@ -45,7 +45,7 @@ def openai_generate_summary(medical_text, additional_info="", department="defaul
                 {"role": "system", "content": "あなたは経験豊富な医療文書作成の専門家です。"},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=30000,
+            max_completion_tokens=30000,
         )
 
         if response.choices and response.choices[0].message.content:
